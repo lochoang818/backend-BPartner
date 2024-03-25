@@ -3,6 +3,7 @@ const cors = require("cors");
 const asyncErrors = require('express-async-errors'); // Import thư viện express-async-errors
 const { getFirestore, collection, addDoc } = require("firebase/firestore/lite");
 const UserRoute = require('./route/UserRoute')
+const DriverRoute = require('./route/DriverRoute')
 const notFound = require('./middleware/notfound')
 const handleError = require('./middleware/handleError')
 
@@ -12,8 +13,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }))
 app.use(cors());
 
-
+//route
 app.use("/user",UserRoute)
+app.use("/driver",DriverRoute)
+
 app.use(notFound)
 app.use(handleError)
 

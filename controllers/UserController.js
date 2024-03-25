@@ -28,14 +28,16 @@ const getUser = async (req, res, next) => {
         const users = [];
 
         querySnapshot.forEach((doc) => {
-            users.push(doc.data());
+            // Lấy id của từng tài liệu và kết hợp nó với dữ liệu của người dùng
+            const userData = { id: doc.id, ...doc.data() };
+            users.push(userData);
         });
 
         res.status(200).json(users);
     } catch (error) {
         next(error);
     }
-};
+}
 module.exports = {
     createUser,
     getUser,
