@@ -4,7 +4,7 @@ const {
     addDoc,
     getDocs,
 } = require("firebase/firestore/lite");
-const { UserCollection } = require("../Collection/collection");
+const { UserCollection } = require("../firestore/collection");
 require("express-async-errors"); // Import thư viện express-async-errors
 
 const createUser = async (req, res, next) => {
@@ -13,7 +13,8 @@ const createUser = async (req, res, next) => {
         console.log("User Data:", userData);
 
         // Thêm người dùng vào cơ sở dữ liệu Firestore
-        await addDoc(UserCollection, userData);
+        let doc = await addDoc(UserCollection, userData);
+        console.log(doc);
         res.status(201).json({ msg: "User Added" });
     } catch (error) {
         throw new Error("Bad request");
@@ -37,7 +38,7 @@ const getUser = async (req, res, next) => {
     } catch (error) {
         next(error);
     }
-}
+};
 module.exports = {
     createUser,
     getUser,

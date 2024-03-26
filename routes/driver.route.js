@@ -1,4 +1,4 @@
-const {createDriver,findByIdUser} = require('../controllers/DriverController')
+const {createDriver,findByIdUser} = require('../controllers/driver.controller')
 const express = require('express')
 const router = express.Router();
 
