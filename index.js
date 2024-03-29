@@ -5,6 +5,8 @@ const { getFirestore, collection, addDoc } = require("firebase/firestore/lite");
 const authRoute = require("./routes/auth.route");
 const UserRoute = require("./routes/user.route");
 const DriverRoute = require("./routes/driver.route");
+const shiftRoute = require("./routes/shift.route");
+
 const notFound = require("./middleware/notfound");
 const handleError = require("./middleware/handleError");
 
@@ -18,6 +20,7 @@ app.use(cors());
 app.use("/user", UserRoute);
 app.use("/auth", authRoute);
 app.use("/driver", DriverRoute);
+app.use("/shift", shiftRoute);
 
 app.use(notFound);
 app.use(handleError);

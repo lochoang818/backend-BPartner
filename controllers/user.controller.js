@@ -3,8 +3,10 @@ const {
     collection,
     addDoc,
     getDocs,
-} = require("firebase/firestore/lite");
+    doc,getDoc
+} = require("firebase/firestore");
 const { UserCollection } = require("../firestore/collection");
+const userService = require('../service/user.service')
 require("express-async-errors"); // Import thư viện express-async-errors
 
 const createUser = async (req, res, next) => {
@@ -39,7 +41,24 @@ const getUser = async (req, res, next) => {
         next(error);
     }
 };
+const getUserById = async (req,res,next) => {
+   
+      const id = req.params.id;
+      console.log(id)
+      const user= await userService.handleGetUserById(id)
+      if(user){
+        res.status(200).json({user});
+
+      }
+      else{
+        res.status(400).json({message:"Failed to fetch user by id"});
+
+      }
+
+  };
+
 module.exports = {
     createUser,
     getUser,
+    getUserById,
 };
