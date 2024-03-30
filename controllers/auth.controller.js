@@ -74,7 +74,7 @@ exports.login = async (req, res, next) => {
     if (!userDoc.activated) {
       return res.status(401).json({ message: "Tài khoản chưa được kích hoạt." });
     }
-    console.log( userSnapshot.docs[0].id);
+    // console.log( userSnapshot.docs[0].id);
     const user = {...userDoc,id: userSnapshot.docs[0].id.toString()}
     // Đăng nhập thành công
     res.status(201).json({ message: "Đăng nhập thành công.",user:user });

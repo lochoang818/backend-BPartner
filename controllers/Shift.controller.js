@@ -16,8 +16,9 @@ const {
   db,
 } = require("../firestore/collection");
 const { get } = require("../utils/emailSender.util");
-const userService = require('../service/user.service')
-const driverService = require('../service/driver.service')
+const userService = require("../service/user.service");
+const driverService = require("../service/driver.service");
+const shiftService = require("../service/shift.service");
 
 exports.createShift = async (req, res, next) => {
   try {
@@ -44,27 +45,32 @@ exports.createShift = async (req, res, next) => {
 };
 exports.findAllShifts = async (req, res, next) => {
   try {
+    const userId = req.params.userId;
     const { gender, faculty, shiftNumber, date } = req.body;
     const q = query(
       ShiftCollection,
       where("shiftNumber", "==", shiftNumber.toString()),
       where("date", "==", date.toString())
     );
-   
 
     const querySnapshot = await getDocs(q);
     const shifts = [];
     for (const doc of querySnapshot.docs) {
       const shiftData = doc.data(); // Truy cập dữ liệu của tài liệu
-      shiftData.driver = await driverService.handleGetDriverById(shiftData.driverId);
-      shiftData.driver.user = await userService.handleGetUserById(shiftData.driver.userId)
-      console.log(shiftData.driver.user.gender);
+      shiftData.driver = await driverService.handleGetDriverById(
+        shiftData.driverId
+      );
+      shiftData.driver.user = await userService.handleGetUserById(
+        shiftData.driver.userId
+      );
+
       if (
-        gender === shiftData.driver.user.gender
+        gender === shiftData.driver.user.gender &&
+        userId !== shiftData.driver.userId
         // (faculty==="" || faculty === shiftData.driver.user.faculty)
       ) {
-
-        shifts.push(shiftData)
+        shiftData.id = doc.id;
+        shifts.push(shiftData);
       }
     }
 
@@ -75,5 +81,18 @@ exports.findAllShifts = async (req, res, next) => {
     // next(error); // Xử lý lỗi nếu có
   }
 };
-
-
+exports.detailShift = async (req, res, next) => {
+  const id = req.params.shiftId;
+  const shiftData = await shiftService.handleGetShiftById(id);
+  if (shiftData) {
+    shiftData.driver = await driverService.handleGetDriverById(
+      shiftData.driverId
+    );
+    shiftData.driver.user = await userService.handleGetUserById(
+      shiftData.driver.userId
+    );
+    res.status(200).json({ shiftData });
+  } else {
+    res.status(400).json({ message: "Failed to fetch shift by id" });
+  }
+};

@@ -6,6 +6,7 @@ const authRoute = require("./routes/auth.route");
 const UserRoute = require("./routes/user.route");
 const DriverRoute = require("./routes/driver.route");
 const shiftRoute = require("./routes/shift.route");
+const confirm = require("./routes/confirmedRide.route");
 
 const notFound = require("./middleware/notfound");
 const handleError = require("./middleware/handleError");
@@ -21,6 +22,7 @@ app.use("/user", UserRoute);
 app.use("/auth", authRoute);
 app.use("/driver", DriverRoute);
 app.use("/shift", shiftRoute);
+app.use("/confirm", confirm);
 
 app.use(notFound);
 app.use(handleError);
