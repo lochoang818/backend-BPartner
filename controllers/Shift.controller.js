@@ -27,6 +27,8 @@ exports.createShift = async (req, res, next) => {
 
     const q = query(
       ShiftCollection,
+      where("trip", "==", shiftData.trip.toString()),
+
       where("driverId", "==", shiftData.driverId.toString()),
       where("shiftNumber", "==", shiftData.shiftNumber.toString()),
       where("date", "==", shiftData.date.toString())
@@ -46,9 +48,11 @@ exports.createShift = async (req, res, next) => {
 exports.findAllShifts = async (req, res, next) => {
   try {
     const userId = req.params.userId;
-    const { gender, faculty, shiftNumber, date } = req.body;
+    const { gender, faculty, shiftNumber, date,trip } = req.body;
     const q = query(
       ShiftCollection,
+      where("trip", "==", trip.toString()),
+
       where("shiftNumber", "==", shiftNumber.toString()),
       where("date", "==", date.toString())
     );
@@ -91,7 +95,7 @@ exports.detailShift = async (req, res, next) => {
     shiftData.driver.user = await userService.handleGetUserById(
       shiftData.driver.userId
     );
-    res.status(200).json({ shiftData });
+    res.status(200).json({ shift:shiftData });
   } else {
     res.status(400).json({ message: "Failed to fetch shift by id" });
   }
