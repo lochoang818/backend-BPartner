@@ -1,4 +1,4 @@
-const confirmedRide= require('../controllers/confirmedRide.controller')
+const confirmedRide= require('../controllers/ride.controller')
 const express = require('express')
 const router = express.Router();
 
