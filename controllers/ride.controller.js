@@ -18,6 +18,13 @@ const { get } = require("../utils/emailSender.util");
 const userService = require("../service/user.service");
 const shiftService = require("../service/shift.service");
 const driverService = require("../service/driver.service");
+const admin = require('firebase-admin');
+
+const serviceAccount = require('../bpartner-664d2-firebase-adminsdk-xx44p-1fd9407f5d.json');
+
+// admin.initializeApp({
+//     credential: admin.credential.cert(serviceAccount)
+// });
 const moment = require("moment");
 
 exports.createConfirmedRide = async (req, res, next) => {
@@ -25,6 +32,7 @@ exports.createConfirmedRide = async (req, res, next) => {
     const confirmData = req.body;
     // driverData.user= await handleGetUserById(req.body.userId)
     await addDoc(ConfirmedRideCollection, confirmData);
+    
     res.status(201).json({ message: "ConfirmedRide added" });
   } catch (error) {
     throw new Error("Bad request");

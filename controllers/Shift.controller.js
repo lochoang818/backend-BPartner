@@ -47,6 +47,7 @@ exports.createShift = async (req, res, next) => {
 };
 exports.findAllShifts = async (req, res, next) => {
   try {
+    console.log("aaa")
     const userId = req.params.userId;
     const { gender, faculty, shiftNumber, date,trip } = req.body;
     const q = query(

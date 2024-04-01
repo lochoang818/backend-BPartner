@@ -26,6 +26,6 @@ exports.handleGetShiftById = async (id) => {
         return null;
       }
     } catch (error) {
-      throw new Error("Error fetching driver");
+      throw new Error("Error fetching shift");
     }
   };
