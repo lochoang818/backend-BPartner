@@ -9,12 +9,12 @@ const db = getFirestore(app);
 const UserCollection = collection(db, "Users");
 const DriverCollection = collection(db, "Drivers");
 const ShiftCollection = collection(db, "Shifts");
-const ConfirmedRideCollection = collection(db, "ConfirmedRide");
+const RideCollection = collection(db, "Ride");
 
 module.exports = {
-    UserCollection,
-    DriverCollection,
-    db,
-    ShiftCollection,
-    ConfirmedRideCollection
+  UserCollection,
+  DriverCollection,
+  db,
+  ShiftCollection,
+  RideCollection,
 };

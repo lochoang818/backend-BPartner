@@ -20,6 +20,7 @@ exports.handleGetUserById = async (id) => {
       const docRef = await doc(UserCollection, id);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
+   
         return docSnap.data();
 
      

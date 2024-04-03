@@ -57,7 +57,7 @@ exports.register = async (req, res, next) => {
 };
 exports.login = async (req, res, next) => {
     const userData = req.body;
-    console.log(userData)
+    // console.log(userData)
     const userQuery = query(UserCollection, where("email", "==", userData.email));
     const userSnapshot = await getDocs(userQuery);
   
