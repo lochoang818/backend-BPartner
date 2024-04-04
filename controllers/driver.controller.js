@@ -38,7 +38,7 @@ const findByIdUser = async (req, res, next) => {
     }
     const drivers = [];
     querySnapshot.forEach((doc) => {
-      drivers.push(doc.data());
+      drivers.push({...doc.data(),id:doc.id});
     });
 
     res.status(200).json({ driver: drivers, message: "Get driver by User ID" });

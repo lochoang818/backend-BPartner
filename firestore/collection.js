@@ -10,6 +10,7 @@ const UserCollection = collection(db, "Users");
 const DriverCollection = collection(db, "Drivers");
 const ShiftCollection = collection(db, "Shifts");
 const RideCollection = collection(db, "Ride");
+const FeedbackCollection = collection(db, "Feedbacks");
 
 module.exports = {
   UserCollection,
@@ -17,4 +18,5 @@ module.exports = {
   db,
   ShiftCollection,
   RideCollection,
+  FeedbackCollection
 };

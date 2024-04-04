@@ -52,9 +52,9 @@ exports.createShift = async (req, res, next) => {
         const dayOfWeek = formattedDate.format("dddd"); // Lấy thứ
         shiftData.weekDay = dayOfWeek;
         // Add school shift if not exists
-        const schoolShiftData = { ...shiftData, type: "school" };
+        const schoolShiftData = { ...shiftData, type: "school",available:true };
         await addDoc(ShiftCollection, schoolShiftData);
-        const homeShiftData = { ...shiftData, type: "home" };
+        const homeShiftData = { ...shiftData, type: "home",available:true };
         await addDoc(ShiftCollection, homeShiftData);
       } else {
         return res
@@ -80,7 +80,7 @@ exports.createShift = async (req, res, next) => {
       const formattedDate = moment(shiftData.date.toString(), "DD/MM/YYYY");
       const dayOfWeek = formattedDate.format("dddd"); // Lấy thứ
       shiftData.weekDay = dayOfWeek;
-
+      shiftData.available=true
       await addDoc(ShiftCollection, shiftData);
     }
 

@@ -76,11 +76,11 @@ exports.login = async (req, res, next) => {
       return res.status(401).json({ message: "Tài khoản chưa được kích hoạt." });
     }
     // console.log( userSnapshot.docs[0].id);
-    console.log(req.body.token)
+    // console.log(req.body.token)
     const updatedUserData = { ...userDoc, token: req.body.token }; // Thêm trường token vào dữ liệu người dùng
     const userRef = userSnapshot.docs[0].ref;
     await updateDoc(userRef, updatedUserData); 
-    const user = {...userDoc,id: userSnapshot.docs[0].id.toString(),token: req.body.token}
+    const user = {...userDoc,id: userSnapshot.docs[0].id.toString(),"deviceId": req.body.token}
     // Đăng nhập thành công
     res.status(201).json({ message: "Đăng nhập thành công.",user:user });
   };
