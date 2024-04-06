@@ -277,8 +277,9 @@ exports.findPendingRide = async (req, res, next) => {
     const querySnapshot = await getDocs(RideCollection);
     const driverId = req.params.driverId;
 
-    // Tạo mảng để lưu trữ kết quả
-    const confirmedRides = [];
+    // Tạo một Map để lưu trữ các chuyến đi theo shiftId
+    const rideMap = new Map();
+    
     // Lặp qua từng document trong kết quả truy vấn
     for (const doc of querySnapshot.docs) {
       const ride = doc.data();
@@ -288,24 +289,31 @@ exports.findPendingRide = async (req, res, next) => {
       if (shiftData !== null && passenger !== null ) {
         const formattedDate = moment(shiftData.date, "DD/MM/YYYY");
         const today = moment();
-        if (formattedDate.isAfter(today) && ride.status === "Pending" && shiftData.driverId ==driverId ) {
-          const schoolShiftQuery = query(
-            RideCollection,
-            where("shiftId", "==", shiftData.id),
-           
-          );
-          const querySnapshot = await getDocs(schoolShiftQuery);
-          const count = querySnapshot.size;
-          // ride.shift = shiftData;
-          ride.passenger = passenger;
-          confirmedRides.push({ride:ride,total:count,shiftNumber:shiftData.shiftNumber,weekDay:shiftData.weekDay,date:shiftData.date});
+        if (formattedDate.isAfter(today) && ride.status === "Pending" && shiftData.driverId == driverId ) {
+          // Tạo key từ shiftId
+          const key = shiftData.id;
+          // Kiểm tra xem key đã tồn tại trong Map chưa
+          if (!rideMap.has(key)) {
+            // Nếu chưa tồn tại, tạo một mảng mới và thêm vào Map
+            rideMap.set(key, { rides: [], total: 0, shiftNumber: shiftData.shiftNumber, weekDay: shiftData.weekDay, date: shiftData.date });
+          }
+          
+          // Thêm chuyến đi vào mảng tương ứng trong Map và tăng số lượng
+          const rideGroup = rideMap.get(key);
+          ride.passenger = passenger
+
+          rideGroup.rides.push(ride);
+          rideGroup.total++;
         }
       }
     }
-
-    res.status(200).json({ rides: confirmedRides});
+    
+    // Chuyển Map thành mảng và trả về
+    const confirmedRides = Array.from(rideMap.values());
+    res.status(200).json({ rides: confirmedRides });
   } catch (error) {
     console.error("Error finding Confirmed Rides:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
