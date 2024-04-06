@@ -7,15 +7,11 @@ const authRoute = require("./routes/auth.route");
 const UserRoute = require("./routes/user.route");
 const DriverRoute = require("./routes/driver.route");
 const shiftRoute = require("./routes/shift.route");
-<<<<<<< HEAD
 const conversationRoute = require("./routes/conversation.route");
-const confirm = require("./routes/confirmedRide.route");
 const messageService = require("./service/message.service");
-=======
-const ride = require("./routes/Ride.route");
+const ride = require("./routes/ride.route");
 const feedbackRoute = require("./routes/feedback.route");
 
->>>>>>> 8d660699a96d2f8018bab2aec734a7fcc19e116d
 const notFound = require("./middleware/notfound");
 const handleError = require("./middleware/handleError");
 const serviceAccount = require("./bpartner-664d2-firebase-adminsdk-xx44p-1fd9407f5d.json");
@@ -41,7 +37,6 @@ app.use("/auth", authRoute);
 app.use("/driver", DriverRoute);
 app.use("/shift", shiftRoute);
 app.use("/conversation", conversationRoute);
-app.use("/confirm", confirm);
 app.use("/ride", ride);
 app.use("/feedback", feedbackRoute);
 
