@@ -3,10 +3,11 @@ const {
     collection,
     addDoc,
     getDocs,
-    doc,getDoc
+    doc,
+    getDoc,
 } = require("firebase/firestore");
 const { UserCollection } = require("../firestore/collection");
-const userService = require('../service/user.service')
+const userService = require("../service/user.service");
 require("express-async-errors"); // Import thư viện express-async-errors
 
 const createUser = async (req, res, next) => {
@@ -39,23 +40,40 @@ const getUser = async (req, res, next) => {
         next(error);
     }
 };
-const getUserById = async (req,res,next) => {
-   
-      const id = req.params.id;
-      const user= await userService.handleGetUserById(id)
-      if(user){
-        res.status(200).json({user});
+const getUserById = async (req, res, next) => {
+    const id = req.params.id;
+    const user = await userService.handleGetUserById(id);
+    if (user) {
+        res.status(200).json({ user });
+    } else {
+        res.status(400).json({ message: "Failed to fetch user by id" });
+    }
+};
 
-      }
-      else{
-        res.status(400).json({message:"Failed to fetch user by id"});
+const updateUserInfo = async (req, res, next) => {
+    const id = req.params.id;
+    let newData = {
+        name: req.body.name,
+        address: req.body.address,
+        grade: req.body.grade,
+        gender: req.body.gender,
+        faculty: req.body.faculty,
+        avatar: req.file.path,
+    };
 
-      }
-
-  };
+    let r = await userService.updateUserInfoById(id, newData);
+    console.log(r);
+    // const user = await userService.handleGetUserById(id);
+    // if (user) {
+    //     res.status(200).json({ user });
+    // } else {
+    //     res.status(400).json({ message: "Failed to fetch user by id" });
+    // }
+};
 
 module.exports = {
     createUser,
     getUser,
     getUserById,
+    updateUserInfo,
 };

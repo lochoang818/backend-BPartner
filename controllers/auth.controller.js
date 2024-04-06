@@ -76,8 +76,8 @@ exports.login = async (req, res, next) => {
     if (!userDoc.activated) {
       return res.status(401).json({ message: "Tài khoản chưa được kích hoạt." });
     }
-    // console.log( userSnapshot.docs[0].id);
-    // console.log(req.body.token)
+    console.log( userSnapshot.docs[0].id);
+    console.log(req.body.token)
     const updatedUserData = { ...userDoc, token: req.body.token  }; // Thêm trường token vào dữ liệu người dùng
     const userRef = userSnapshot.docs[0].ref;
     await updateDoc(userRef, updatedUserData); 
