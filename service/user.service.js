@@ -7,7 +7,7 @@ const {
     where,
     getDoc,
     documentId,
-    updateDoc
+    updateDoc,
 } = require("firebase/firestore");
 const { UserCollection } = require("../firestore/collection");
 exports.handleGetUserById = async (id) => {

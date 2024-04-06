@@ -11,21 +11,22 @@ const {
   } = require("firebase/firestore");
   const {
 
-    ConfirmedRideCollection
+   FeedbackCollection
 
   } = require("../firestore/collection");
-exports.handleGetConfirmedRideById = async (id) => {
+exports.handleGetDriverById = async (id) => {
     try {
-      const docRef = doc(ConfirmedRideCollection, id);
+      const docRef = doc(FeedbackCollection, id);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         return docSnap.data();
       } else {
-        console.log(`ConfirmedRide with id ${id} not found`);
+        console.log(`feedback with id ${id} not found`);
         return null;
       }
     } catch (error) {
-      console.error("Error fetching ConfirmedRide:", error);
-      throw new Error("Error fetching ConfirmedRide");
+      console.error("Error fetching feedback:", error);
+      throw new Error("Error fetching feedback");
     }
   };
+  

@@ -29,3 +29,4 @@ exports.handleGetDriverById = async (id) => {
       throw new Error("Error fetching driver");
     }
   };
+  

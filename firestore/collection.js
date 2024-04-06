@@ -10,15 +10,17 @@ const UserCollection = collection(db, "Users");
 const ConversationCollection = collection(db, "Conversations");
 const DriverCollection = collection(db, "Drivers");
 const ShiftCollection = collection(db, "Shifts");
-const ConfirmedRideCollection = collection(db, "ConfirmedRide");
 const MessageCollection = collection(db, "Messages");
-
+const RideCollection = collection(db, "Ride");
+const FeedbackCollection = collection(db, "Feedbacks");
 module.exports = {
     UserCollection,
     DriverCollection,
     db,
     ShiftCollection,
-    ConfirmedRideCollection,
+    RideCollection,
+    FeedbackCollection,
+
     ConversationCollection,
-    MessageCollection
+    MessageCollection,
 };

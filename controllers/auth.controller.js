@@ -12,7 +12,8 @@ const {
   where,
 } = require("firebase/firestore");
 const { UserCollection, db } = require("../firestore/collection");
-const { getDoc, updateDoc } = require("firebase/firestore");
+  
+  const { getDoc,updateDoc } = require("firebase/firestore");
 
 exports.register = async (req, res, next) => {
   try {
@@ -56,7 +57,7 @@ exports.register = async (req, res, next) => {
 };
 exports.login = async (req, res, next) => {
     const userData = req.body;
-  
+    // console.log(userData)
     const userQuery = query(UserCollection, where("email", "==", userData.email));
     const userSnapshot = await getDocs(userQuery);
   
@@ -75,7 +76,11 @@ exports.login = async (req, res, next) => {
       return res.status(401).json({ message: "Tài khoản chưa được kích hoạt." });
     }
     // console.log( userSnapshot.docs[0].id);
-    const user = {...userDoc,id: userSnapshot.docs[0].id.toString()}
+    // console.log(req.body.token)
+    const updatedUserData = { ...userDoc, token: req.body.token  }; // Thêm trường token vào dữ liệu người dùng
+    const userRef = userSnapshot.docs[0].ref;
+    await updateDoc(userRef, updatedUserData); 
+    const user = {...userDoc,id: userSnapshot.docs[0].id.toString(),"token": req.body.token}
     // Đăng nhập thành công
     res.status(201).json({ message: "Đăng nhập thành công.",user:user });
   };
