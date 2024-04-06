@@ -7,14 +7,18 @@ const db = getFirestore(app);
 
 // Export your collections
 const UserCollection = collection(db, "Users");
+const ConversationCollection = collection(db, "Conversations");
 const DriverCollection = collection(db, "Drivers");
 const ShiftCollection = collection(db, "Shifts");
 const ConfirmedRideCollection = collection(db, "ConfirmedRide");
+const MessageCollection = collection(db, "Messages");
 
 module.exports = {
     UserCollection,
     DriverCollection,
     db,
     ShiftCollection,
-    ConfirmedRideCollection
+    ConfirmedRideCollection,
+    ConversationCollection,
+    MessageCollection
 };
