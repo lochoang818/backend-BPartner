@@ -7,5 +7,6 @@ router.route("/find/:userId").post(confirmedRide.findIncommingRide);
 router.route("/confirm").post(confirmedRide.confirmRide);
 router.route("/start").post(confirmedRide.startRide);
 router.route("/findPending/:driverId").post(confirmedRide.findPendingRide);
+router.route("/find/:driverId").patch(confirmedRide.findIncommingRideDriver);
 
 module.exports = router;

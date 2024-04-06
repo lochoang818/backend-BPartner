@@ -90,7 +90,43 @@ exports.createShift = async (req, res, next) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+exports.autoMatching = async (req, res, next) => {
+  const userId = req.params.userId;
+  const { gender, faculty, shiftNumber, date, type } = req.body;
+  const q = query(
+    ShiftCollection,
+    where("type", "==", type.toString()),
+    where("available", "==", true),
+    where("auto", "==", true),
+    where("shiftNumber", "==", shiftNumber.toString()),
+    where("date", "==", date.toString())
+  );
 
+  const querySnapshot = await getDocs(q);
+  let highestCredit = 0;
+  let shiftWithHighestCredit = null;
+
+  for (const doc of querySnapshot.docs) {
+    const shiftData = doc.data();
+    shiftData.driver = await driverService.handleGetDriverById(shiftData.driverId);
+    
+    if (
+      gender === shiftData.condition.gender &&
+      userId !== shiftData.driver.userId &&
+      (faculty === "" || faculty === shiftData.faculty)
+    ) {
+      if (shiftData.driver.credit > highestCredit) {
+        highestCredit = shiftData.driver.credit;
+        shiftWithHighestCredit = shiftData;
+      }
+    }
+  }
+  if(shiftWithHighestCredit!=null){
+    
+  }
+  // Kết quả chứa shift có driver có credit cao nhất
+  console.log("Shift with highest credit:", shiftWithHighestCredit);
+}
 exports.findAllShifts = async (req, res, next) => {
   try {
     const userId = req.params.userId;

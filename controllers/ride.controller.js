@@ -29,43 +29,6 @@ const admin = require("firebase-admin");
 //     credential: admin.credential.cert(serviceAccount)
 // });
 const moment = require("moment");
-exports.autoMatching = async (req, res, next) => {
-  const userId = req.params.userId;
-  const { gender, faculty, shiftNumber, date, type } = req.body;
-  const q = query(
-    ShiftCollection,
-    where("type", "==", type.toString()),
-    where("available", "==", true),
-    where("auto", "==", true),
-    where("shiftNumber", "==", shiftNumber.toString()),
-    where("date", "==", date.toString())
-  );
-
-  const querySnapshot = await getDocs(q);
-  let highestCredit = 0;
-  let shiftWithHighestCredit = null;
-
-  for (const doc of querySnapshot.docs) {
-    const shiftData = doc.data();
-    shiftData.driver = await driverService.handleGetDriverById(shiftData.driverId);
-    
-    if (
-      gender === shiftData.condition.gender &&
-      userId !== shiftData.driver.userId &&
-      (faculty === "" || faculty === shiftData.faculty)
-    ) {
-      if (shiftData.driver.credit > highestCredit) {
-        highestCredit = shiftData.driver.credit;
-        shiftWithHighestCredit = shiftData;
-      }
-    }
-  }
-  if(shiftWithHighestCredit!=null){
-    
-  }
-  // Kết quả chứa shift có driver có credit cao nhất
-  console.log("Shift with highest credit:", shiftWithHighestCredit);
-}
 
 exports.createRide = async (req, res, next) => {
   try {
@@ -165,15 +128,14 @@ exports.confirmRide = async (req, res, next) => {
   const passengerId = req.body.passengerId;
   const shiftId = req.body.shiftId;
 
-  const check = await rideService.checkAvailableConfirm(rideId,passengerId)
-  if(check===false){
-    return   res.status(401).json({ message: "Error" });
-
+  const check = await rideService.checkAvailableConfirm(rideId, passengerId);
+  if (check === false) {
+    return res.status(401).json({ message: "Error" });
   }
   await updateDoc(doc(ShiftCollection, shiftId), {
-    available:false
-});
-  const ride = await rideService.updateStatus(rideId,"Confirm");
+    available: false,
+  });
+  const ride = await rideService.updateStatus(rideId, "Confirm");
   // console.log(ride.shiftId)
   res.status(200).json({ message: "updated" });
 };
@@ -182,8 +144,8 @@ exports.startRide = async (req, res, next) => {
   const driverName = req.body.driverName;
   const rideId = req.body.rideId;
   const passengerId = req.body.passengerId;
-  const passenger = await userService.handleGetUserById(passengerId)
-  console.log(passenger.token)
+  const passenger = await userService.handleGetUserById(passengerId);
+  console.log(passenger.token);
   const message = {
     notification: {
       title: `${driverName} đang trên đường đến bạn!`,
@@ -208,15 +170,15 @@ exports.startRide = async (req, res, next) => {
 
       // res.status(500).json({ error: "Error sending message:" + error });
     });
-  const ride = await rideService.updateStatus(rideId,"Start");
+  const ride = await rideService.updateStatus(rideId, "Start");
   // console.log(ride.shiftId)
   res.status(200).json({ message: "start ride" });
 };
 exports.completedRide = async (req, res, next) => {
-  const{rideId,passengerId,driverName,driverId} = req.body;
-  const passenger = await userService.handleGetUserById(passengerId)
-  const driverUser = await userService.handleGetUserById(driverId)
-  if(passenger.token!=null){
+  const { rideId, passengerId, driverName, driverId } = req.body;
+  const passenger = await userService.handleGetUserById(passengerId);
+  const driverUser = await userService.handleGetUserById(driverId);
+  if (passenger.token != null) {
     const message = {
       notification: {
         title: `${driverName} đang trên đường đến bạn!`,
@@ -238,11 +200,11 @@ exports.completedRide = async (req, res, next) => {
       })
       .catch((error) => {
         console.log("Error sending message:");
-  
+
         // res.status(500).json({ error: "Error sending message:" + error });
       });
   }
-  if(driverUser.token!=null){
+  if (driverUser.token != null) {
     const message = {
       notification: {
         title: `${driverName} đang trên đường đến bạn!`,
@@ -264,11 +226,11 @@ exports.completedRide = async (req, res, next) => {
       })
       .catch((error) => {
         console.log("Error sending message:");
-  
+
         // res.status(500).json({ error: "Error sending message:" + error });
       });
   }
-  const ride = await rideService.updateStatus(rideId,"Completed");
+  const ride = await rideService.updateStatus(rideId, "Completed");
   // console.log(ride.shiftId)
   res.status(200).json({ message: "start ride" });
 };
@@ -279,35 +241,45 @@ exports.findPendingRide = async (req, res, next) => {
 
     // Tạo một Map để lưu trữ các chuyến đi theo shiftId
     const rideMap = new Map();
-    
+
     // Lặp qua từng document trong kết quả truy vấn
     for (const doc of querySnapshot.docs) {
       const ride = doc.data();
       ride.id = doc.id;
       const shiftData = await shiftService.handleGetShiftById(ride.shiftId);
       const passenger = await userService.handleGetUserById(ride.passengerId);
-      if (shiftData !== null && passenger !== null ) {
+      if (shiftData !== null && passenger !== null) {
         const formattedDate = moment(shiftData.date, "DD/MM/YYYY");
         const today = moment();
-        if (formattedDate.isAfter(today) && ride.status === "Pending" && shiftData.driverId == driverId ) {
+        if (
+          formattedDate.isAfter(today) &&
+          ride.status === "Pending" &&
+          shiftData.driverId == driverId
+        ) {
           // Tạo key từ shiftId
           const key = shiftData.id;
           // Kiểm tra xem key đã tồn tại trong Map chưa
           if (!rideMap.has(key)) {
             // Nếu chưa tồn tại, tạo một mảng mới và thêm vào Map
-            rideMap.set(key, { rides: [], total: 0, shiftNumber: shiftData.shiftNumber, weekDay: shiftData.weekDay, date: shiftData.date });
+            rideMap.set(key, {
+              rides: [],
+              total: 0,
+              shiftNumber: shiftData.shiftNumber,
+              weekDay: shiftData.weekDay,
+              date: shiftData.date,
+            });
           }
-          
+
           // Thêm chuyến đi vào mảng tương ứng trong Map và tăng số lượng
           const rideGroup = rideMap.get(key);
-          ride.passenger = passenger
+          ride.passenger = passenger;
 
           rideGroup.rides.push(ride);
           rideGroup.total++;
         }
       }
     }
-    
+
     // Chuyển Map thành mảng và trả về
     const confirmedRides = Array.from(rideMap.values());
     res.status(200).json({ rides: confirmedRides });
@@ -317,3 +289,43 @@ exports.findPendingRide = async (req, res, next) => {
   }
 };
 
+exports.findIncommingRideDriver = async (req, res, next) => {
+  try {
+    const querySnapshot = await getDocs(RideCollection);
+    const driverId = req.params.driverId;
+    const { status } = req.body;
+    // Tạo mảng để lưu trữ kết quả
+    const confirmedRides = [];
+
+    // Lặp qua từng document trong kết quả truy vấn
+    for (const doc of querySnapshot.docs) {
+      const ride = doc.data();
+      ride.id = doc.id;
+      const shiftData = await shiftService.handleGetShiftById(ride.shiftId);
+      const passenger = await userService.handleGetUserById(ride.passengerId);
+      const formattedDate = moment(shiftData.date, "DD/MM/YYYY");
+      const today = moment();
+
+      if (
+        formattedDate.isAfter(today) &&
+        ride.status === status &&
+        driverId == shiftData.driverId
+      ) {
+        ride.shift = shiftData;
+        ride.passenger = passenger;
+        shiftData.driver = await driverService.handleGetDriverById(
+          shiftData.driverId
+        );
+        shiftData.driver.user = await userService.handleGetUserById(
+          shiftData.driver.userId
+        );
+        confirmedRides.push(ride);
+      }
+    }
+
+    res.status(200).json({ ride: confirmedRides });
+  } catch (error) {
+    console.error("Error finding Confirmed Rides:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
