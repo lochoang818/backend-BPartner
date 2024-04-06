@@ -127,7 +127,7 @@ exports.confirmRide = async (req, res, next) => {
   const rideId = req.body.rideId;
   const passengerId = req.body.passengerId;
   const shiftId = req.body.shiftId;
-
+  const passenger = await userService.handleGetUserById(passengerId)
   const check = await rideService.checkAvailableConfirm(rideId, passengerId);
   if (check === false) {
     return res.status(401).json({ message: "Error" });
@@ -135,6 +135,33 @@ exports.confirmRide = async (req, res, next) => {
   await updateDoc(doc(ShiftCollection, shiftId), {
     available: false,
   });
+  if(passenger.token!=null){
+    const message = {
+      notification: {
+        title: `${driverName} Đã xác nhận chuyến của bạn!`,
+        body: `${passenger.name} Hãy chuẩn bị sẵn sàng để cùng đi học nhé!`,
+      },
+      data: {
+        click_action: "FLUTTER_NOTIFICATION_CLICK",
+        screen: "feedbackDriver",
+        messageId: "123456",
+      },
+      token: passenger.token,
+    };
+    admin
+      .messaging()
+      .send(message)
+      .then((response) => {
+        console.log("Successfully sent message");
+        // res.status(200).json({ message: "Successfully sent message" });
+      })
+      .catch((error) => {
+        console.log("Error sending message:");
+  
+        // res.status(500).json({ error: "Error sending message:" + error });
+      });
+  }
+ 
   const ride = await rideService.updateStatus(rideId, "Confirm");
   // console.log(ride.shiftId)
   res.status(200).json({ message: "updated" });

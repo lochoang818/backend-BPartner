@@ -35,6 +35,7 @@ exports.register = async (req, res, next) => {
 
     userData.activated = false;
     userData.studentId = id;
+    userData.credit="3"
     userData.password = await bcrypt.hash(userData.password, 10);
 
     // Thêm người dùng vào cơ sở dữ liệu Firestore
