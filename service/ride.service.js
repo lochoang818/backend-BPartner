@@ -28,12 +28,12 @@ exports.handleGetRideById = async (id) => {
     throw new Error("Error fetching Ride");
   }
 };
-exports.updateConfirmStatus = async (id) => {
+exports.updateStatus = async (id,status) => {
   try {
     const docRef = await doc(RideCollection, id);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      await updateDoc(docSnap.ref, { status: "Confirm" });
+      await updateDoc(docSnap.ref, { status: status });
 
       return docSnap.data();
     } else {

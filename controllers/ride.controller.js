@@ -29,6 +29,43 @@ const admin = require("firebase-admin");
 //     credential: admin.credential.cert(serviceAccount)
 // });
 const moment = require("moment");
+exports.autoMatching = async (req, res, next) => {
+  const userId = req.params.userId;
+  const { gender, faculty, shiftNumber, date, type } = req.body;
+  const q = query(
+    ShiftCollection,
+    where("type", "==", type.toString()),
+    where("available", "==", true),
+    where("auto", "==", true),
+    where("shiftNumber", "==", shiftNumber.toString()),
+    where("date", "==", date.toString())
+  );
+
+  const querySnapshot = await getDocs(q);
+  let highestCredit = 0;
+  let shiftWithHighestCredit = null;
+
+  for (const doc of querySnapshot.docs) {
+    const shiftData = doc.data();
+    shiftData.driver = await driverService.handleGetDriverById(shiftData.driverId);
+    
+    if (
+      gender === shiftData.condition.gender &&
+      userId !== shiftData.driver.userId &&
+      (faculty === "" || faculty === shiftData.faculty)
+    ) {
+      if (shiftData.driver.credit > highestCredit) {
+        highestCredit = shiftData.driver.credit;
+        shiftWithHighestCredit = shiftData;
+      }
+    }
+  }
+  if(shiftWithHighestCredit!=null){
+    
+  }
+  // Kết quả chứa shift có driver có credit cao nhất
+  console.log("Shift with highest credit:", shiftWithHighestCredit);
+}
 
 exports.createRide = async (req, res, next) => {
   try {
@@ -53,7 +90,7 @@ exports.createRide = async (req, res, next) => {
     //check passenger
     const driver = await driverService.handleGetDriverById(shiftData.driverId);
     const driverUser = await userService.handleGetUserById(driver.userId);
-    if (driverUser.deviceId !== null) {
+    if (driverUser.token !== null) {
       const message = {
         notification: {
           title: "Đi học với mình nhé!",
@@ -61,10 +98,10 @@ exports.createRide = async (req, res, next) => {
         },
         data: {
           click_action: "FLUTTER_NOTIFICATION_CLICK",
-          screen: "/search",
+          screen: "search",
           messageId: "123456",
         },
-        token: driverUser.deviceId,
+        token: driverUser.token,
       };
       admin
         .messaging()
@@ -126,15 +163,113 @@ exports.findIncommingRide = async (req, res, next) => {
 exports.confirmRide = async (req, res, next) => {
   const rideId = req.body.rideId;
   const passengerId = req.body.passengerId;
+  const shiftId = req.body.shiftId;
 
   const check = await rideService.checkAvailableConfirm(rideId,passengerId)
   if(check===false){
     return   res.status(401).json({ message: "Error" });
 
   }
-  const ride = await rideService.updateConfirmStatus(rideId);
+  await updateDoc(doc(ShiftCollection, shiftId), {
+    available:false
+});
+  const ride = await rideService.updateStatus(rideId,"Confirm");
   // console.log(ride.shiftId)
   res.status(200).json({ message: "updated" });
 };
 
+exports.startRide = async (req, res, next) => {
+  const driverName = req.body.driverName;
+  const rideId = req.body.rideId;
+  const passengerId = req.body.passengerId;
+  const passenger = await userService.handleGetUserById(passengerId)
+  console.log(passenger.token)
+  const message = {
+    notification: {
+      title: `${driverName} đang trên đường đến bạn!`,
+      body: `${passenger.name} Hãy chuẩn bị sẵn sàng để cùng đi học nhé!`,
+    },
+    data: {
+      click_action: "FLUTTER_NOTIFICATION_CLICK",
+      screen: "feedbackDriver",
+      messageId: "123456",
+    },
+    token: passenger.token,
+  };
+  admin
+    .messaging()
+    .send(message)
+    .then((response) => {
+      console.log("Successfully sent message");
+      // res.status(200).json({ message: "Successfully sent message" });
+    })
+    .catch((error) => {
+      console.log("Error sending message:");
+
+      // res.status(500).json({ error: "Error sending message:" + error });
+    });
+  const ride = await rideService.updateStatus(rideId,"Start");
+  // console.log(ride.shiftId)
+  res.status(200).json({ message: "start ride" });
+};
+exports.completedRide = async (req, res, next) => {
+  const{rideId,passengerId,driverName,driverId} = req.body;
+  const passenger = await userService.handleGetUserById(passengerId)
+  const driverUser = await userService.handleGetUserById(driverId)
+  if(passenger.token!=null){
+    const message = {
+      notification: {
+        title: `${driverName} đang trên đường đến bạn!`,
+        body: `${passenger.name} Hãy chuẩn bị sẵn sàng để cùng đi học nhé!`,
+      },
+      data: {
+        click_action: "FLUTTER_NOTIFICATION_CLICK",
+        screen: "feedbackDriver",
+        messageId: "123456",
+      },
+      token: passenger.token,
+    };
+    admin
+      .messaging()
+      .send(message)
+      .then((response) => {
+        console.log("Successfully sent message");
+        // res.status(200).json({ message: "Successfully sent message" });
+      })
+      .catch((error) => {
+        console.log("Error sending message:");
+  
+        // res.status(500).json({ error: "Error sending message:" + error });
+      });
+  }
+  if(driverUser.token!=null){
+    const message = {
+      notification: {
+        title: `${driverName} đang trên đường đến bạn!`,
+        body: `${passenger.name} Hãy chuẩn bị sẵn sàng để cùng đi học nhé!`,
+      },
+      data: {
+        click_action: "FLUTTER_NOTIFICATION_CLICK",
+        screen: "feedbackPassenger",
+        messageId: "123456",
+      },
+      token: passenger.token,
+    };
+    admin
+      .messaging()
+      .send(message)
+      .then((response) => {
+        console.log("Successfully sent message");
+        // res.status(200).json({ message: "Successfully sent message" });
+      })
+      .catch((error) => {
+        console.log("Error sending message:");
+  
+        // res.status(500).json({ error: "Error sending message:" + error });
+      });
+  }
+  const ride = await rideService.updateStatus(rideId,"Completed");
+  // console.log(ride.shiftId)
+  res.status(200).json({ message: "start ride" });
+};
 

@@ -3,7 +3,8 @@ const express = require("express");
 const router = express.Router();
 
 router.route("/").post(confirmedRide.createRide);
-router.route("/:userId").get(confirmedRide.findIncommingRide);
+router.route("/find/:userId").post(confirmedRide.findIncommingRide);
 router.route("/confirm").post(confirmedRide.confirmRide);
+router.route("/start").post(confirmedRide.startRide);
 
 module.exports = router;
