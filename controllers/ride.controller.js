@@ -273,7 +273,7 @@ exports.findPendingRide = async (req, res, next) => {
           // Thêm chuyến đi vào mảng tương ứng trong Map và tăng số lượng
           const rideGroup = rideMap.get(key);
           ride.passenger = passenger;
-
+          ride.shift = shiftData;
           rideGroup.rides.push(ride);
           rideGroup.total++;
         }
