@@ -19,7 +19,7 @@ exports.handleGetShiftById = async (id) => {
       const docRef = await doc(ShiftCollection, id);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
-        return docSnap.data();
+        return {...docSnap.data(),id:docSnap.id};
 
      
       } else {

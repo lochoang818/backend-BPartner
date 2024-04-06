@@ -272,4 +272,40 @@ exports.completedRide = async (req, res, next) => {
   // console.log(ride.shiftId)
   res.status(200).json({ message: "start ride" });
 };
+exports.findPendingRide = async (req, res, next) => {
+  try {
+    const querySnapshot = await getDocs(RideCollection);
+    const driverId = req.params.driverId;
 
+    // Tạo mảng để lưu trữ kết quả
+    const confirmedRides = [];
+    // Lặp qua từng document trong kết quả truy vấn
+    for (const doc of querySnapshot.docs) {
+      const ride = doc.data();
+      ride.id = doc.id;
+      const shiftData = await shiftService.handleGetShiftById(ride.shiftId);
+      const passenger = await userService.handleGetUserById(ride.passengerId);
+      if (shiftData !== null && passenger !== null ) {
+        const formattedDate = moment(shiftData.date, "DD/MM/YYYY");
+        const today = moment();
+        if (formattedDate.isAfter(today) && ride.status === "Pending" && shiftData.driverId ==driverId ) {
+          const schoolShiftQuery = query(
+            RideCollection,
+            where("shiftId", "==", shiftData.id),
+           
+          );
+          const querySnapshot = await getDocs(schoolShiftQuery);
+          const count = querySnapshot.size;
+          // ride.shift = shiftData;
+          ride.passenger = passenger;
+          confirmedRides.push({ride:ride,total:count,shiftNumber:shiftData.shiftNumber,weekDay:shiftData.weekDay,date:shiftData.date});
+        }
+      }
+    }
+
+    res.status(200).json({ rides: confirmedRides});
+  } catch (error) {
+    console.error("Error finding Confirmed Rides:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
