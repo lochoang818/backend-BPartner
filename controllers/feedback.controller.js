@@ -41,7 +41,7 @@ const {
         });
 
         // Thêm phản hồi mới vào mảng feedbacks
-        feedbacks.push({ content, rate  ,           name: user.name,
+        feedbacks.push({ content, rate, name: user.name,avatar:user.avatar
         });
 
         // Tính điểm trung bình
@@ -82,7 +82,7 @@ exports.createFeedbackPassenger = async (req, res, next) => {
         });
 
         // Thêm phản hồi mới vào mảng feedbacks
-        feedbacks.push({ content, rate,name: driverUser.name});
+        feedbacks.push({ content, rate,name: driverUser.name,avatar:driverUser.avatar});
 
         // Tính điểm trung bình
         const averageRating = ((totalPoints + parseFloat(rate)) / (numberOfFeedbacks + 1)).toFixed(1);

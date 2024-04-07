@@ -20,6 +20,7 @@ const userService = require('../service/user.service')
 const createDriver = async (req, res, next) => {
   try {
     const driverData = req.body;
+    driver.credit="3"
     // driverData.user= await handleGetUserById(req.body.userId)
     await addDoc(DriverCollection, driverData);
     res.status(201).json({ message: "Driver added" });

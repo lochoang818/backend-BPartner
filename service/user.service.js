@@ -9,6 +9,7 @@ const {
     getDoc,
     documentId,
     updateDoc,
+    doc
 } = require("firebase/firestore");
 const { UserCollection } = require("../firestore/collection");
 exports.handleGetUserById = async (id) => {
@@ -21,7 +22,7 @@ exports.handleGetUserById = async (id) => {
             return null;
         }
     } catch (error) {
-        throw new Error("Error fetching driver");
+        throw new Error("Error fetching User");
     }
 };
 
