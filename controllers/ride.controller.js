@@ -81,6 +81,7 @@ exports.createRide = async (req, res, next) => {
           // res.status(500).json({ error: "Error sending message:" + error });
         });
     }
+    confirmData.isStart=false
     confirmData.status = "Pending";
     await addDoc(RideCollection, confirmData);
     res.status(201).json({ message: "Ride added" });
