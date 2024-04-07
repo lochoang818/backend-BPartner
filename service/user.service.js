@@ -5,6 +5,7 @@ const {
     query,
     getDocs,
     where,
+    doc,
     getDoc,
     documentId,
     updateDoc,

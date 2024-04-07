@@ -1,14 +1,12 @@
 const express = require("express");
 const cors = require("cors");
 const { createServer } = require("http");
-const asyncErrors = require("express-async-errors"); // Import thư viện express-async-errors
-const { getFirestore, collection, addDoc } = require("firebase/firestore/lite");
 const authRoute = require("./routes/auth.route");
 const UserRoute = require("./routes/user.route");
 const DriverRoute = require("./routes/driver.route");
 const shiftRoute = require("./routes/shift.route");
 const conversationRoute = require("./routes/conversation.route");
-const messageService = require("./service/message.service");
+const notificationRoute = require("./routes/notification.route");
 const ride = require("./routes/ride.route");
 const feedbackRoute = require("./routes/feedback.route");
 
@@ -38,6 +36,7 @@ app.use("/driver", DriverRoute);
 app.use("/shift", shiftRoute);
 app.use("/conversation", conversationRoute);
 app.use("/ride", ride);
+app.use("/notification", notificationRoute);
 app.use("/feedback", feedbackRoute);
 
 app.use(notFound);
@@ -57,6 +56,10 @@ io.on("connection", (socket) => {
         //         content
         //     );
     });
+    socket.on("locationChanged", (data) => {
+      socket.to(userConnections[data.passengerId]).emit("driverLocationChanged", data);
+      console.log(data);
+    })
 });
 global.io = io;
 httpServer.listen(4000, () => console.log("Server is running on port 4000"));
