@@ -29,6 +29,7 @@ const admin = require("firebase-admin");
 //     credential: admin.credential.cert(serviceAccount)
 // });
 const moment = require("moment");
+const { json } = require("express");
 
 exports.createRide = async (req, res, next) => {
   try {
@@ -80,6 +81,68 @@ exports.createRide = async (req, res, next) => {
           // res.status(500).json({ error: "Error sending message:" + error });
         });
     }
+    confirmData.status = "Pending";
+    await addDoc(RideCollection, confirmData);
+    res.status(201).json({ message: "Ride added" });
+  } catch (error) {
+    throw new Error("Bad request");
+  }
+};
+exports.autoConfirm = async (req, res, next) => {
+  try {
+    const confirmData = req.body;
+    const check = await rideService.checkAvailablePassenger(
+      confirmData.shiftId,
+      confirmData.passengerId
+    );
+    if (!check) {
+      return res
+        .status(400)
+        .json({ message: "This passenger is not available" });
+    }
+    // driverData.user= await handleGetUserById(req.body.userId)
+    const shiftData = await shiftService.handleGetShiftById(
+      confirmData.shiftId
+    );
+
+    const passenger = await userService.handleGetUserById(
+      confirmData.passengerId
+    ); // await addDoc(RideCollection, confirmData);
+    //check passenger
+
+    const driver = await driverService.handleGetDriverById(shiftData.driverId);
+    const driverUser = await userService.handleGetUserById(driver.userId);
+    if (driverUser.token !== null) {
+      const message = {
+        notification: {
+          title: `Hãy chuẩn bị đi học với nhau nào!`,
+          body: `Hệ thống đã xếp cặp bạn với ${passenger.name}!`,
+        },
+        data: {
+          click_action: "FLUTTER_NOTIFICATION_CLICK",
+          screen: "search",
+          messageId: "123456",
+        },
+        token: driverUser.token,
+      };
+      admin
+        .messaging()
+        .send(message)
+        .then((response) => {
+          console.log("Successfully sent message");
+          // res.status(200).json({ message: "Successfully sent message" });
+        })
+        .catch((error) => {
+          console.log("Error sending message:");
+
+          // res.status(500).json({ error: "Error sending message:" + error });
+        });
+    }
+    await updateDoc(doc(ShiftCollection, confirmData.shiftId), {
+      available: false,
+    });
+    confirmData.status = "Confirm";
+
     await addDoc(RideCollection, confirmData);
     res.status(201).json({ message: "Ride added" });
   } catch (error) {
@@ -104,7 +167,11 @@ exports.findIncommingRide = async (req, res, next) => {
         const formattedDate = moment(shiftData.date, "DD/MM/YYYY");
         const today = moment();
 
-        if (formattedDate.isAfter(today) && ride.status === status && passengerId === ride.passengerId) {
+        if (
+          formattedDate.isAfter(today) &&
+          ride.status === status &&
+          passengerId === ride.passengerId
+        ) {
           ride.shift = shiftData;
           ride.passenger = passenger;
           shiftData.driver = await driverService.handleGetDriverById(
@@ -126,20 +193,22 @@ exports.findIncommingRide = async (req, res, next) => {
 };
 exports.confirmRide = async (req, res, next) => {
   const rideId = req.body.rideId;
-  const passengerId = req.body.passengerId;
-  const shiftId = req.body.shiftId;
-  const passenger = await userService.handleGetUserById(passengerId)
-  const check = await rideService.checkAvailableConfirm(rideId, passengerId);
+  const driverId = req.body.driverId;
+  const rideTemp = await rideService.handleGetRideById(rideId)
+
+  const passenger = await userService.handleGetUserById(rideTemp.passengerId);
+  const driver = await userService.handleGetUserById(driverId);
+  const check = await rideService.checkAvailableConfirm(rideId, rideTemp.passengerId);
   if (check === false) {
     return res.status(401).json({ message: "Bạn đã có chuyến" });
   }
-  await updateDoc(doc(ShiftCollection, shiftId), {
+  await updateDoc(doc(ShiftCollection, rideTemp.shiftId), {
     available: false,
   });
-  if(passenger.token!=null){
+  if (passenger.token != null) {
     const message = {
       notification: {
-        title: `${driverName} Đã xác nhận chuyến của bạn!`,
+        title: `${driver.name} Đã xác nhận chuyến của bạn!`,
         body: `${passenger.name} Hãy chuẩn bị sẵn sàng để cùng đi học nhé!`,
       },
       data: {
@@ -158,11 +227,11 @@ exports.confirmRide = async (req, res, next) => {
       })
       .catch((error) => {
         console.log("Error sending message:");
-  
+
         // res.status(500).json({ error: "Error sending message:" + error });
       });
   }
- 
+
   const ride = await rideService.updateStatus(rideId, "Confirm");
   // console.log(ride.shiftId)
   res.status(200).json({ message: "updated" });
@@ -356,4 +425,46 @@ exports.findIncommingRideDriver = async (req, res, next) => {
     console.error("Error finding Confirmed Rides:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
+};
+exports.checkStartingRide = async (req, res, next) => {
+  const rideId = req.params.rideId;
+  const ride = rideService.handleGetRideById(rideId);
+  if (ride.status == "Start") {
+    return res.status(200).json({ message: "Chuyến đã bắt đầu" });
+  } else {
+    res.status(400).json({ message: "Chuyến chưa bắt đầu" });
+  }
+};
+exports.passengerCancelRide = async (req, res, next) => {
+  const rideId = req.params.rideId;
+  await rideService.updateStatus(rideId, "Cancel");
+  const ride = await rideService.handleGetRideById(rideId);
+  await updateDoc(doc(ShiftCollection, ride.shiftId), {
+    available: true,
+  });
+  const passenger = await userService.handleGetUserById(ride.passengerId)
+  const message = {
+    notification: {
+      title: `${rideId.name} đã hủy chuyến!`,
+      body: `Xin lỗi nhé, mong bạn thông `,
+    },
+    data: {
+      click_action: "FLUTTER_NOTIFICATION_CLICK",
+      screen: "feedbackPassenger",
+      messageId: "123456",
+    },
+    token: passenger.token,
+  };
+  admin
+    .messaging()
+    .send(message)
+    .then((response) => {
+      console.log("Successfully sent message");
+      // res.status(200).json({ message: "Successfully sent message" });
+    })
+    .catch((error) => {
+      console.log("Error sending message:");
+
+      // res.status(500).json({ error: "Error sending message:" + error });
+    });
 };

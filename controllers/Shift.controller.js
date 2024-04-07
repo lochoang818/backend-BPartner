@@ -51,6 +51,7 @@ exports.createShift = async (req, res, next) => {
         const formattedDate = moment(shiftData.date.toString(), "DD/MM/YYYY");
         const dayOfWeek = formattedDate.format("dddd"); // Lấy thứ
         shiftData.weekDay = dayOfWeek;
+        shiftData.auto
         // Add school shift if not exists
         const schoolShiftData = { ...shiftData, type: "school",available:true };
         await addDoc(ShiftCollection, schoolShiftData);
@@ -92,7 +93,10 @@ exports.createShift = async (req, res, next) => {
 };
 exports.autoMatching = async (req, res, next) => {
   const userId = req.params.userId;
+  const user = await userService.handleGetUserById(userId)
   const { gender, faculty, shiftNumber, date, type } = req.body;
+  console.log( req.body)
+
   const q = query(
     ShiftCollection,
     where("type", "==", type.toString()),
@@ -103,38 +107,46 @@ exports.autoMatching = async (req, res, next) => {
   );
 
   const querySnapshot = await getDocs(q);
-  let highestCredit = 0;
-  let shiftWithHighestCredit = null;
+
+  const shifts = [];
 
   for (const doc of querySnapshot.docs) {
     const shiftData = doc.data();
     shiftData.driver = await driverService.handleGetDriverById(shiftData.driverId);
-    
+    shiftData.driver.user = await userService.handleGetUserById(
+      shiftData.driver.userId
+    );
     if (
-      gender === shiftData.condition.gender &&
+      gender ===shiftData.driver.user.gender &&
       userId !== shiftData.driver.userId &&
-      (faculty === "" || faculty === shiftData.faculty)
+      (faculty === "" || faculty === shiftData.driver.user.faculty)
     ) {
-      if (shiftData.driver.credit > highestCredit) {
-        highestCredit = shiftData.driver.credit;
-        shiftWithHighestCredit = shiftData;
+      if (  user.gender ===shiftData.condition.gender &&
+       
+        (user.faculty === "" || user.faculty === shiftData.condition.faculty)) {
+          shiftData.id = doc.id;
+          shifts.push(shiftData);
       }
     }
+   
   }
-  if(shiftWithHighestCredit!=null){
-    
+  if(shifts.length===0){
+    return res.status(400).json({ message:"No shift available" });
+
   }
-  // Kết quả chứa shift có driver có credit cao nhất
-  console.log("Shift with highest credit:", shiftWithHighestCredit);
+  return res.status(201).json({ shifts: shifts });
+
 }
 exports.findAllShifts = async (req, res, next) => {
   try {
     const userId = req.params.userId;
     const { gender, faculty, shiftNumber, date, type } = req.body;
+    console.log(req.body)
     const q = query(
       ShiftCollection,
       where("type", "==", type.toString()),
       where("available", "==", true),
+      where("auto", "==", false),
 
       where("shiftNumber", "==", shiftNumber.toString()),
       where("date", "==", date.toString())
@@ -153,9 +165,10 @@ exports.findAllShifts = async (req, res, next) => {
 
       if (
         gender === shiftData.driver.user.gender &&
-        userId !== shiftData.driver.userId
-        // (faculty==="" || faculty === shiftData.driver.user.faculty)
+        userId !== shiftData.driver.userId  &&
+        (faculty==="" || faculty === shiftData.driver.user.faculty)
       ) {
+        
         shiftData.id = doc.id;
         shifts.push(shiftData);
       }
@@ -186,14 +199,15 @@ exports.detailShift = async (req, res, next) => {
 exports.createShiftByCalendar = async (req, res, next) => {
   try {
     moment.locale("en"); // Gán locale thành tiếng Anh cho so sánh
-
+    console.log("loc")
     const requestData = req.body;
-    const { driverId, start, end, location, data } = requestData;
+    const { driverId, start, end, location, data,auto,condition } = requestData;
 
     const startDate = moment(start, "DD/MM/YYYY");
     const endDate = moment(end, "DD/MM/YYYY"); // Thêm 6 ngày cho đến thứ 7
 
     const shifts = [];
+    const dataObject = JSON.parse(data);
 
     // Tạo các ca làm việc từ thứ 2 đến thứ 7
     for (
@@ -204,11 +218,15 @@ exports.createShiftByCalendar = async (req, res, next) => {
       const dayOfWeek = currentDate.format("dddd").toLowerCase(); // Lấy tên của ngày trong tuần
       
       // Kiểm tra xem ngày hiện tại có trong dữ liệu gửi lên không
-      if (data.hasOwnProperty(dayOfWeek)) {
-        const { start, end } = data[dayOfWeek];
+      if (dataObject.hasOwnProperty(dayOfWeek)) {
+        // const prop =dayOfWeek
+        const { start, end } =dataObject[dayOfWeek]
         const formattedDate = currentDate.format("DD/MM/YYYY");
         if (start !== "") {
           const schoolShift = {
+            available:true,
+            condition:condition,
+            auto:auto,
             driverId,
             shiftNumber: start,
             date: currentDate.format("DD/MM/YYYY"),
@@ -221,6 +239,10 @@ exports.createShiftByCalendar = async (req, res, next) => {
 
         if (end !== "") {
           const homeShift = {
+            available:true,
+            auto:auto,
+            condition:condition,
+
             driverId,
             shiftNumber: end,
             date: currentDate.format("DD/MM/YYYY"),
