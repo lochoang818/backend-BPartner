@@ -51,6 +51,7 @@ exports.createRide = async (req, res, next) => {
       confirmData.passengerId
     ); // await addDoc(RideCollection, confirmData);
     //check passenger
+
     const driver = await driverService.handleGetDriverById(shiftData.driverId);
     const driverUser = await userService.handleGetUserById(driver.userId);
     if (driverUser.token !== null) {
@@ -103,7 +104,7 @@ exports.findIncommingRide = async (req, res, next) => {
         const formattedDate = moment(shiftData.date, "DD/MM/YYYY");
         const today = moment();
 
-        if (formattedDate.isAfter(today) && ride.status === status) {
+        if (formattedDate.isAfter(today) && ride.status === status && passengerId === ride.passengerId) {
           ride.shift = shiftData;
           ride.passenger = passenger;
           shiftData.driver = await driverService.handleGetDriverById(
@@ -130,7 +131,7 @@ exports.confirmRide = async (req, res, next) => {
   const passenger = await userService.handleGetUserById(passengerId)
   const check = await rideService.checkAvailableConfirm(rideId, passengerId);
   if (check === false) {
-    return res.status(401).json({ message: "Error" });
+    return res.status(401).json({ message: "Bạn đã có chuyến" });
   }
   await updateDoc(doc(ShiftCollection, shiftId), {
     available: false,

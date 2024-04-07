@@ -241,6 +241,20 @@ exports.createShiftByCalendar = async (req, res, next) => {
       const formattedDate = moment(shift.date.toString(), "DD/MM/YYYY");
       const dayOfWeek = formattedDate.format("dddd"); // Lấy thứ
       shift.weekDay = dayOfWeek;
+      const q = query(
+        ShiftCollection,
+        where("type", "==", shift.type.toString()),
+        where("driverId", "==", shift.driverId.toString()),
+        where("shiftNumber", "==", shift.shiftNumber.toString()),
+        where("date", "==", shift.date.toString())
+      );
+
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        return res
+          .status(400)
+          .json({ message: "You cannot add the same shift" });
+      }
       await addDoc(ShiftCollection, shift);
     }
 
