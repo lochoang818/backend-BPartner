@@ -428,8 +428,8 @@ exports.findIncommingRideDriver = async (req, res, next) => {
 };
 exports.checkStartingRide = async (req, res, next) => {
   const rideId = req.params.rideId;
-  const ride = rideService.handleGetRideById(rideId);
-  if (ride.status == "Start") {
+  const ride = await rideService.handleGetRideById(rideId);
+  if (ride.isStart == true) {
     return res.status(200).json({ message: "Chuyến đã bắt đầu" });
   } else {
     res.status(400).json({ message: "Chuyến chưa bắt đầu" });
