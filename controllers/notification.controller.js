@@ -16,12 +16,19 @@ exports.sendNotification = async (req, res) => {
         return res.status(401).json({ message: "Missing data" });
     }
 
-    let data = { rideId: rideId, status: status };
-
+    let data = { rideId: rideId };
+    if (status) data.status = status;
     let result = await notificationService.sendNotification(
         receiverId,
         type,
         data
     );
     return res.json(result);
+};
+
+exports.confirmNotification = async (req, res) => {
+    let id = req.params.id;
+    let state = await notificationService.confirmNotification(id);
+    if (!state) return res.status(401).json({ success: false });
+    res.json({ success: true });
 };

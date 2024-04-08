@@ -44,8 +44,11 @@ exports.getNotificationsByReceiverId = async (receiverId) => {
             doc(UserCollection, ride.data().passengerId)
         );
         notification.data.driver = driver.data();
+        notification.data.driver.id = driver.id;
         notification.data.ride = ride.data();
         notification.data.passenger = passenger.data();
+        notification.data.passenger.id = passenger.id;
+        notification.id = d.id;
         result.push(notification);
     }
 
@@ -64,6 +67,7 @@ exports.getNotificationById = async (id) => {
     notification.data.passenger = passenger.data();
     notification.data.driver = driver.data();
     notification.data.ride = ride.data();
+    notification.id = notificationDoc.id;
     return notification;
 };
 
@@ -86,4 +90,14 @@ exports.sendNotification = async (receiverId, type, data) => {
         console.log(error);
         return null;
     }
+};
+
+exports.confirmNotification = async (id) => {
+    let ref = doc(NotificationCollection, id);
+    let d = await getDoc(ref);
+    let data = d.data().data;
+    if (!d.data().type.startsWith("confirm")) return false;
+    data.status = "confirmed";
+    await updateDoc(ref, { data: data });
+    return true;
 };
