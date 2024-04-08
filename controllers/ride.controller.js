@@ -195,6 +195,22 @@ exports.createRide = async (req, res, next) => {
         throw new Error("Bad request");
     }
 };
+exports.getFeedbackbyRideId = async (req, res, next) => {
+  const rideId = req.params.rideId;
+
+  const feedbackDocs = await getDocs(
+    query(FeedbackCollection, where("rideId", "==", rideId))
+  );
+
+  const feedbacks = [];
+  feedbackDocs.forEach((doc) => {
+    const data = doc.data();
+    feedbacks.push(data);
+  });
+  res
+      .status(200)
+      .json({ message: "Get Feedback successfully", feedbacks: feedbacks[0] });
+}
 exports.autoConfirm = async (req, res, next) => {
     try {
         const confirmData = req.body;

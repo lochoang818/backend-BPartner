@@ -15,5 +15,6 @@ router.route("/history/user").post(confirmedRide.getAllRidePassenger);
 router.route("/history/driver").post(confirmedRide.getAllRideDriver);
 router.route("/cancel/driver").post(confirmedRide.DriverCancelRide);
 router.route("/cancel/passenger").post(confirmedRide.passengerCancelRide);
+router.route("/getFeedback/:rideId").get(confirmedRide.getFeedbackbyRideId);
 
 module.exports = router;
