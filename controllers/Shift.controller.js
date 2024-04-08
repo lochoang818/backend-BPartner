@@ -232,7 +232,7 @@ exports.createShiftByCalendar = async (req, res, next) => {
           if (dataObject.hasOwnProperty(dayOfWeek)) {
               const { start, end } = dataObject[dayOfWeek];
               const formattedDate = currentDate.format("D/M/YYYY"); // Sử dụng "D" và "M" để loại bỏ số 0 phía trước của ngày và tháng
-              if (start !== "") {
+              if (start !== ""&&start!="0") {
                   const schoolShift = {
                       available: true,
                       condition: condition,
@@ -246,7 +246,7 @@ exports.createShiftByCalendar = async (req, res, next) => {
                   shifts.push(schoolShift);
               }
 
-              if (end !== "") {
+              if (end !== "" &&end!="0") {
                   const homeShift = {
                       available: true,
                       auto: auto,
