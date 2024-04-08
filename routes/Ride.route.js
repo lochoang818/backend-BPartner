@@ -13,5 +13,7 @@ router.route("/check/:rideId").get(confirmedRide.checkStartingRide);
 router.route("/complete").post(confirmedRide.completedRide);
 router.route("/history/user").post(confirmedRide.getAllRidePassenger);
 router.route("/history/driver").post(confirmedRide.getAllRideDriver);
+router.route("/cancel/driver").post(confirmedRide.DriverCancelRide);
+router.route("/cancel/passenger").post(confirmedRide.passengerCancelRide);
 
 module.exports = router;

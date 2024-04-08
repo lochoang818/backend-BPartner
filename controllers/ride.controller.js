@@ -14,6 +14,7 @@ const {
     ShiftCollection,
     DriverCollection,
     RideCollection,
+    UserCollection,
 } = require("../firestore/collection");
 const { get } = require("../utils/emailSender.util");
 const userService = require("../service/user.service");
@@ -54,7 +55,9 @@ exports.getAllRidePassenger = async (req, res, next) => {
           if (shiftData &&(rideData.status === "Completed" || rideData.status === "Cancel")) {
               rideData.shift = shiftData; // Thêm thông tin về shift vào chuyến đi
               const driver = await driverService.handleGetDriverById(shiftData.driverId)
+              const userDriver = await userService.handleGetUserById(driver.userId)
               rideData.shift.driver =driver
+              rideData.shift.driver.user=userDriver
               rides.push(rideData);
           }
       }
@@ -97,7 +100,10 @@ exports.getAllRideDriver = async (req, res, next) => {
           if (shiftData && shiftData.driverId === driverId && (rideData.status === "Completed" || rideData.status === "Cancel")) {
             rideData.shift = shiftData; // Thêm thông tin về shift vào chuyến đi
               const driver = await driverService.handleGetDriverById(shiftData.driverId)
+              const userDriver = await userService.handleGetUserById(driver.userId)
+
               rideData.shift.driver =driver
+              rideData.shift.driver.user=userDriver
               rides.push(rideData);
           }
       }
@@ -568,9 +574,13 @@ exports.checkStartingRide = async (req, res, next) => {
     }
 };
 exports.passengerCancelRide = async (req, res, next) => {
-    const rideId = req.params.rideId;
-    await rideService.updateStatus(rideId, "Cancel");
+    const {rideId,userId } = req.body;
     const ride = await rideService.handleGetRideById(rideId);
+    if (ride.isStart == false) {
+      await Zerofeedback(ride.userId)
+
+    }
+    await rideService.updateStatus(rideId, "Cancel");
     await updateDoc(doc(ShiftCollection, ride.shiftId), {
         available: true,
     });
@@ -600,9 +610,90 @@ exports.passengerCancelRide = async (req, res, next) => {
             // res.status(500).json({ error: "Error sending message:" + error });
         });
 };
+
 exports.DriverCancelRide = async (req, res, next) => {
-  const rideId = req.params.rideId;
-  const ride = await rideService.handleGetRideById(rideId);
+  const {rideId, isNear,userId,dateTime  } = req.body;
+  const ride = await rideService.handleGetRideById(rideId)
+  const currentTime = moment();
+
+  // Chuyển đổi thời gian dateTime từ định dạng của req.body (vd: '2024-04-08T12:00:00') sang đối tượng Moment
+  const rideDateTime = moment(dateTime);
+  const waitingTime = currentTime.diff(rideDateTime, 'minutes');
+
+  if(isNear==true){
+    await Zerofeedback(ride.passengerId)
+  }
+  else{
+    await Zerofeedback(userId)
+
+  }
+    await rideService.updateStatus(rideId, "Cancel");
+    await updateDoc(doc(ShiftCollection, ride.shiftId), {
+        available: true,
+    });
+    const passenger = await userService.handleGetUserById(ride.passengerId);
+    const message = {
+        notification: {
+            title: `${rideId.name} đã hủy chuyến!`,
+            body: `Xin lỗi nhé, mong bạn thông cảm!`,
+        },
+        data: {
+            click_action: "FLUTTER_NOTIFICATION_CLICK",
+            screen: "feedbackPassenger",
+            messageId: "123456",
+        },
+        token: passenger.token,
+    };
+    admin
+        .messaging()
+        .send(message)
+        .then((response) => {
+            console.log("Successfully sent message");
+            // res.status(200).json({ message: "Successfully sent message" });
+        })
+        .catch((error) => {
+            console.log("Error sending message:");
+
+            // res.status(500).json({ error: "Error sending message:" + error });
+        });
 
 };
 
+const Zerofeedback = async(recipientId)=>{
+
+  // Lấy tất cả các phản hồi của hành khách từ collectionFeedback
+  const feedbackDocs = await getDocs(
+    query(FeedbackCollection, where("userId", "==", recipientId))
+  );
+
+  let totalPoints = 0;
+  let numberOfFeedbacks = 0;
+
+  feedbackDocs.forEach((doc) => {
+    const data = doc.data();
+    totalPoints += parseFloat(data.rate);
+    numberOfFeedbacks++;
+  });
+
+  // Thêm phản hồi mới vào mảng feedbacks
+
+  // Tính điểm trung bình
+  const averageRating = (
+    (totalPoints + parseFloat(0)) /
+    (numberOfFeedbacks + 1)
+  ).toFixed(1);
+  await addDoc(FeedbackCollection, {
+    content:"",
+    rate:0,
+    name: feedbacker.name,
+    avatar: feedbacker.avatar,
+    userId: recipientId,
+    rideId: rideId,
+  });
+
+  // Cập nhật điểm trung bình của hành khách trong cơ sở dữ liệu
+  await updateDoc(doc(UserCollection, recipientId), {
+    credit: averageRating ?? 0,
+  });
+
+}
