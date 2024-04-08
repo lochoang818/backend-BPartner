@@ -4,5 +4,6 @@ const router = express.Router();
 
 router.get("/", controller.getNotificationsByReceiverId);
 router.post("/", controller.sendNotification);
+router.put("/confirm/:id", controller.confirmNotification);
 
 module.exports = router;

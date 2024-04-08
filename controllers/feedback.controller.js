@@ -100,3 +100,70 @@ exports.createFeedbackPassenger = async (req, res, next) => {
     }
 };
 
+exports.createFeedback = async (req, res, next) => {
+    const { feedbackerId, recipientId, rate, content } = req.body;
+    
+    try {
+        // Lấy thông tin của hành khách và tài xế
+        const feedbacker = await userService.handleGetUserById(feedbackerId);
+        const recipient = await userService.handleGetUserById(recipientId);
+
+        // Lấy tất cả các phản hồi của hành khách từ collectionFeedback
+        const feedbackDocs = await getDocs(query(FeedbackCollection, where("userId", "==", recipientId)));
+        
+        let totalPoints = 0;
+        let numberOfFeedbacks = 0;
+        
+
+        feedbackDocs.forEach(doc => {
+            const data = doc.data();
+            totalPoints += parseFloat(data.rate);
+            console.log(data.rate)
+            numberOfFeedbacks++;
+         
+        });
+
+        // Thêm phản hồi mới vào mảng feedbacks
+
+        // Tính điểm trung bình
+        const averageRating = ((totalPoints + parseFloat(rate)) / (numberOfFeedbacks + 1)).toFixed(1);
+        await addDoc(FeedbackCollection, { content, rate, name: feedbacker.name, avatar: feedbacker.avatar,userId: recipientId});
+
+        // Cập nhật điểm trung bình của hành khách trong cơ sở dữ liệu
+        await updateDoc(doc(UserCollection, recipientId), {
+            credit: averageRating ?? 0,
+        });
+
+        res.status(201).json({ message: "Feedback added successfully" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+}
+exports.getFeedback = async (req, res, next) => {
+    const id = req.params.id
+    try {
+        // Lấy thông tin của hành khách và tài xế
+    
+
+        // Lấy tất cả các phản hồi của hành khách từ collectionFeedback
+        const feedbackDocs = await getDocs(query(FeedbackCollection, where("userId", "==", id)));
+
+        
+        const feedbacks = []
+        feedbackDocs.forEach(doc => {
+            const data = doc.data();
+            feedbacks.push(data)
+
+
+         
+        });
+
+       
+
+        res.status(201).json({ message: "Get Feedback successfully" , feedbacks:feedbacks});
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+}

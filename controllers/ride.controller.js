@@ -20,6 +20,7 @@ const userService = require("../service/user.service");
 const shiftService = require("../service/shift.service");
 const driverService = require("../service/driver.service");
 const rideService = require("../service/ride.service");
+const notificationService = require("../service/notification.service");
 
 const admin = require("firebase-admin");
 
@@ -44,6 +45,7 @@ exports.createRide = async (req, res, next) => {
         .json({ message: "This passenger is not available" });
     }
     // driverData.user= await handleGetUserById(req.body.userId)
+    // driverData.user= await handleGetUserById(req.body.userId)
     const shiftData = await shiftService.handleGetShiftById(
       confirmData.shiftId
     );
@@ -56,6 +58,14 @@ exports.createRide = async (req, res, next) => {
     const driver = await driverService.handleGetDriverById(shiftData.driverId);
     const driverUser = await userService.handleGetUserById(driver.userId);
     if (driverUser.token !== null) {
+      await notificationService.sendNotification(
+        rideTemp.passengerId,
+        "request",
+        {
+          rideId: rideId,
+          status: "sending",
+        }
+      );
       const message = {
         notification: {
           title: "Đi học với mình nhé!",
@@ -81,7 +91,7 @@ exports.createRide = async (req, res, next) => {
           // res.status(500).json({ error: "Error sending message:" + error });
         });
     }
-    confirmData.isStart=false
+    confirmData.isStart = false;
     confirmData.status = "Pending";
     await addDoc(RideCollection, confirmData);
     res.status(201).json({ message: "Ride added" });
@@ -114,6 +124,14 @@ exports.autoConfirm = async (req, res, next) => {
     const driver = await driverService.handleGetDriverById(shiftData.driverId);
     const driverUser = await userService.handleGetUserById(driver.userId);
     if (driverUser.token !== null) {
+      await notificationService.sendNotification(
+        rideTemp.passengerId,
+        "request",
+        {
+          rideId: rideId,
+          status: "accepting",
+        }
+      );
       const message = {
         notification: {
           title: `Hãy chuẩn bị đi học với nhau nào!`,
@@ -195,11 +213,14 @@ exports.findIncommingRide = async (req, res, next) => {
 exports.confirmRide = async (req, res, next) => {
   const rideId = req.body.rideId;
   const driverId = req.body.driverId;
-  const rideTemp = await rideService.handleGetRideById(rideId)
+  const rideTemp = await rideService.handleGetRideById(rideId);
 
   const passenger = await userService.handleGetUserById(rideTemp.passengerId);
   const driver = await userService.handleGetUserById(driverId);
-  const check = await rideService.checkAvailableConfirm(rideId, rideTemp.passengerId);
+  const check = await rideService.checkAvailableConfirm(
+    rideId,
+    rideTemp.passengerId
+  );
   if (check === false) {
     return res.status(401).json({ message: "Bạn đã có chuyến" });
   }
@@ -207,10 +228,18 @@ exports.confirmRide = async (req, res, next) => {
     available: false,
   });
   if (passenger.token != null) {
+    await notificationService.sendNotification(
+      rideTemp.passengerId,
+      "request",
+      {
+        rideId: rideId,
+        status: "accepting",
+      }
+    );
     const message = {
       notification: {
-        title: `${driver.name} Đã xác nhận chuyến của bạn!`,
-        body: `${passenger.name} Hãy chuẩn bị sẵn sàng để cùng đi học nhé!`,
+        title: `${driver.name} đã xác nhận chuyến của bạn!`,
+        body: `${passenger.name} hãy chuẩn bị sẵn sàng để cùng đi học nhé!`,
       },
       data: {
         click_action: "FLUTTER_NOTIFICATION_CLICK",
@@ -242,8 +271,8 @@ exports.startRide = async (req, res, next) => {
   const driverName = req.body.driverName;
   const rideId = req.body.rideId;
   const passengerId = req.body.passengerId;
+  
   const passenger = await userService.handleGetUserById(passengerId);
-  console.log(passenger.token);
   const message = {
     notification: {
       title: `${driverName} đang trên đường đến bạn!`,
@@ -269,9 +298,16 @@ exports.startRide = async (req, res, next) => {
       // res.status(500).json({ error: "Error sending message:" + error });
     });
   // const ride = await rideService.updateStatus(rideId, "Start");
+
+  await notificationService.sendNotification(passengerId, "startingRide", {
+    rideId: rideId,
+  });
+  // const ride = await rideService.updateStatus(rideId, "Start");
   await updateDoc(doc(RideCollection, rideId), {
-      isStart:true
-});
+    isStart: true,
+  });
+  console.log("passenger.token");
+
   // console.log(ride.shiftId)
   res.status(200).json({ message: "start ride" });
 };
@@ -280,6 +316,8 @@ exports.completedRide = async (req, res, next) => {
   const passenger = await userService.handleGetUserById(passengerId);
   const driverUser = await userService.handleGetUserById(driverId);
   if (passenger.token != null) {
+    
+
     const message = {
       notification: {
         title: `${driverName} đang trên đường đến bạn!`,
@@ -305,35 +343,13 @@ exports.completedRide = async (req, res, next) => {
         // res.status(500).json({ error: "Error sending message:" + error });
       });
   }
-  if (driverUser.token != null) {
-    const message = {
-      notification: {
-        title: `${driverName} đang trên đường đến bạn!`,
-        body: `${passenger.name} Hãy chuẩn bị sẵn sàng để cùng đi học nhé!`,
-      },
-      data: {
-        click_action: "FLUTTER_NOTIFICATION_CLICK",
-        screen: "feedbackPassenger",
-        messageId: "123456",
-      },
-      token: passenger.token,
-    };
-    admin
-      .messaging()
-      .send(message)
-      .then((response) => {
-        console.log("Successfully sent message");
-        // res.status(200).json({ message: "Successfully sent message" });
-      })
-      .catch((error) => {
-        console.log("Error sending message:");
-
-        // res.status(500).json({ error: "Error sending message:" + error });
-      });
-  }
+  
   const ride = await rideService.updateStatus(rideId, "Completed");
+  global.io.to(global.userConnections[passengerId]).emit("completedRide", rideId);
+  // notificationService.sendNotification(passengerId, "completedRide", {rideId: rideId});
+
   // console.log(ride.shiftId)
-  res.status(200).json({ message: "start ride" });
+  res.status(200).json({ message: "Completed ride" });
 };
 exports.findPendingRide = async (req, res, next) => {
   try {
@@ -389,6 +405,7 @@ exports.findPendingRide = async (req, res, next) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
 
 exports.findIncommingRideDriver = async (req, res, next) => {
   try {
@@ -446,11 +463,11 @@ exports.passengerCancelRide = async (req, res, next) => {
   await updateDoc(doc(ShiftCollection, ride.shiftId), {
     available: true,
   });
-  const passenger = await userService.handleGetUserById(ride.passengerId)
+  const passenger = await userService.handleGetUserById(ride.passengerId);
   const message = {
     notification: {
       title: `${rideId.name} đã hủy chuyến!`,
-      body: `Xin lỗi nhé, mong bạn thông `,
+      body: `Xin lỗi nhé, mong bạn thông cảm!`,
     },
     data: {
       click_action: "FLUTTER_NOTIFICATION_CLICK",
