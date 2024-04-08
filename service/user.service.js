@@ -9,7 +9,7 @@ const {
     getDoc,
     documentId,
     updateDoc,
-    doc
+    
 } = require("firebase/firestore");
 const { UserCollection } = require("../firestore/collection");
 exports.handleGetUserById = async (id) => {

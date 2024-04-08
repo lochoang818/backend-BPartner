@@ -268,7 +268,10 @@ exports.startRide = async (req, res, next) => {
 
       // res.status(500).json({ error: "Error sending message:" + error });
     });
-  const ride = await rideService.updateStatus(rideId, "Start");
+  // const ride = await rideService.updateStatus(rideId, "Start");
+  await updateDoc(doc(RideCollection, rideId), {
+      isStart:true
+});
   // console.log(ride.shiftId)
   res.status(200).json({ message: "start ride" });
 };
