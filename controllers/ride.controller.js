@@ -15,6 +15,7 @@ const {
     DriverCollection,
     RideCollection,
     UserCollection,
+    FeedbackCollection,
 } = require("../firestore/collection");
 const { get } = require("../utils/emailSender.util");
 const userService = require("../service/user.service");
@@ -34,8 +35,16 @@ const admin = require("firebase-admin");
 const moment = require("moment");
 const { json } = require("express");
 exports.getAllRidePassenger = async (req, res, next) => {
-  const { passengerId } = req.body;
+  const { passengerId,rideId } = req.body;
+  const feedbackDocs = await getDocs(
+    query(FeedbackCollection, where("rideId", "==", rideId))
+  );
 
+  const feedbacks = [];
+  feedbackDocs.forEach((doc) => {
+    const data = doc.data();
+    feedbacks.push(data);
+  }); 
   try {
       const ridesQuerySnapshot = await getDocs(
           query(RideCollection, where("passengerId", "==", passengerId))
@@ -58,6 +67,8 @@ exports.getAllRidePassenger = async (req, res, next) => {
               const userDriver = await userService.handleGetUserById(driver.userId)
               rideData.shift.driver =driver
               rideData.shift.driver.user=userDriver
+              rideData.feedback=feedbacks[0]
+
               rides.push(rideData);
           }
       }
@@ -78,9 +89,17 @@ exports.getAllRidePassenger = async (req, res, next) => {
 
 
 exports.getAllRideDriver = async (req, res, next) => {
-  const { driverId } = req.body;
+  const { driverId,rideId } = req.body;
+  const feedbackDocs = await getDocs(
+    query(FeedbackCollection, where("rideId", "==", rideId))
+  );
 
-  try {
+  const feedbacks = [];
+  feedbackDocs.forEach((doc) => {
+    const data = doc.data();
+    feedbacks.push(data);
+  }); 
+   try {
       // Lấy tất cả các chuyến đi
       const ridesQuerySnapshot = await getDocs(
           query(RideCollection)
@@ -104,6 +123,7 @@ exports.getAllRideDriver = async (req, res, next) => {
 
               rideData.shift.driver =driver
               rideData.shift.driver.user=userDriver
+              rideData.feedback=feedbacks[0]
               rides.push(rideData);
           }
       }
@@ -620,7 +640,7 @@ exports.DriverCancelRide = async (req, res, next) => {
   const rideDateTime = moment(dateTime);
   const waitingTime = currentTime.diff(rideDateTime, 'minutes');
 
-  if(isNear==true){
+  if(isNear==true && waitingTime>15){
     await Zerofeedback(ride.passengerId)
   }
   else{
