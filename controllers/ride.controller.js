@@ -65,6 +65,8 @@ exports.getAllRidePassenger = async (req, res, next) => {
               rideData.shift = shiftData; // Thêm thông tin về shift vào chuyến đi
               const driver = await driverService.handleGetDriverById(shiftData.driverId)
               const userDriver = await userService.handleGetUserById(driver.userId)
+              const passenger = await userService.handleGetUserById(rideData.passengerId)
+              rideData.passenger=passenger
               rideData.shift.driver =driver
               rideData.shift.driver.user=userDriver
               rideData.feedback=feedbacks[0]
@@ -120,7 +122,8 @@ exports.getAllRideDriver = async (req, res, next) => {
             rideData.shift = shiftData; // Thêm thông tin về shift vào chuyến đi
               const driver = await driverService.handleGetDriverById(shiftData.driverId)
               const userDriver = await userService.handleGetUserById(driver.userId)
-
+              const passenger = await userService.handleGetUserById(rideData.passengerId)
+              rideData.passenger=passenger
               rideData.shift.driver =driver
               rideData.shift.driver.user=userDriver
               rideData.feedback=feedbacks[0]
@@ -629,6 +632,8 @@ exports.passengerCancelRide = async (req, res, next) => {
 
             // res.status(500).json({ error: "Error sending message:" + error });
         });
+        return res.status(200).json({ message: "Hủy chuyến thành công" });
+
 };
 
 exports.DriverCancelRide = async (req, res, next) => {
@@ -641,10 +646,10 @@ exports.DriverCancelRide = async (req, res, next) => {
   const waitingTime = currentTime.diff(rideDateTime, 'minutes');
 
   if(isNear==true && waitingTime>15){
-    await Zerofeedback(ride.passengerId)
+    await Zerofeedback(ride.passengerId,rideId)
   }
   else{
-    await Zerofeedback(userId)
+    await Zerofeedback(userId,rideId)
 
   }
     await rideService.updateStatus(rideId, "Cancel");
@@ -652,7 +657,8 @@ exports.DriverCancelRide = async (req, res, next) => {
         available: true,
     });
     const passenger = await userService.handleGetUserById(ride.passengerId);
-    const message = {
+    if(passenger.token!=null){
+      const message = {
         notification: {
             title: `${rideId.name} đã hủy chuyến!`,
             body: `Xin lỗi nhé, mong bạn thông cảm!`,
@@ -676,10 +682,13 @@ exports.DriverCancelRide = async (req, res, next) => {
 
             // res.status(500).json({ error: "Error sending message:" + error });
         });
+    }
+    return res.status(200).json({ message: "Hủy chuyến thành công" });
+
 
 };
 
-const Zerofeedback = async(recipientId)=>{
+const Zerofeedback = async(recipientId,rideId)=>{
 
   // Lấy tất cả các phản hồi của hành khách từ collectionFeedback
   const feedbackDocs = await getDocs(
@@ -705,8 +714,8 @@ const Zerofeedback = async(recipientId)=>{
   await addDoc(FeedbackCollection, {
     content:"",
     rate:0,
-    name: feedbacker.name,
-    avatar: feedbacker.avatar,
+    name: "",
+    avatar: "",
     userId: recipientId,
     rideId: rideId,
   });
