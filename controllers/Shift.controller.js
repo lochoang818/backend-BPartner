@@ -221,7 +221,7 @@ exports.createShiftByCalendar = async (req, res, next) => {
       if (dataObject.hasOwnProperty(dayOfWeek)) {
         // const prop =dayOfWeek
         const { start, end } =dataObject[dayOfWeek]
-        const formattedDate = currentDate.format("DD/MM/YYYY");
+        const formattedDate = currentDate.format("D/M/YYYY"); // Sử dụng "D" và "M" để loại bỏ số 0 phía trước của ngày và tháng
         if (start !== "") {
           const schoolShift = {
             available:true,
@@ -260,7 +260,7 @@ exports.createShiftByCalendar = async (req, res, next) => {
     // Thêm các ca làm việc vào cơ sở dữ liệu
     for (const shift of shifts) {
       // Thêm shift vào cơ sở dữ liệu ở đây
-      const formattedDate = moment(shift.date.toString(), "DD/MM/YYYY");
+      const formattedDate = currentDate.format("D/M/YYYY"); // Sử dụng "D" và "M" để loại bỏ số 0 phía trước của ngày và tháng
       const dayOfWeek = formattedDate.format("dddd"); // Lấy thứ
       shift.weekDay = dayOfWeek;
       const q = query(
