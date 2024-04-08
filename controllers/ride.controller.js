@@ -29,9 +29,62 @@ const admin = require("firebase-admin");
 // admin.initializeApp({
 //     credential: admin.credential.cert(serviceAccount)
 // });
+
 const moment = require("moment");
 const { json } = require("express");
+exports.getAllRidePassenger = async (req, res, next) => {
+  const { passengerId } = req.body;
 
+  try {
+      const ridesQuerySnapshot = await getDocs(
+          query(RideCollection, where("passengerId", "==", passengerId))
+      );
+
+      const rides = [];
+
+      ridesQuerySnapshot.forEach((rideDoc) => {
+          const rideData = rideDoc.data();
+          rides.push(rideData);
+      });
+
+      res.status(200).json(rides);
+  } catch (error) {
+      console.error("Error fetching rides:", error);
+      res.status(500).send("Internal Server Error");
+  }
+};
+
+exports.getAllRideDriver = async (req, res, next) => {
+  const { driverId } = req.body;
+
+  try {
+    // Lấy tất cả các chuyến đi
+    const ridesQuerySnapshot = await getDocs(
+      query(RideCollectiond)
+  );
+    const rides = [];
+
+    // Lặp qua mỗi chuyến đi
+    for (const rideDoc of ridesQuerySnapshot.docs) {
+      const rideData = rideDoc.data();
+      const shiftId = rideData.shiftId;
+
+      // Lấy thông tin của shift dựa trên shiftId
+      const shiftData = await handleGetShiftById(shiftId);
+      
+      // Nếu shift tồn tại và driverId trùng khớp, thêm chuyến đi vào mảng rides
+      if (shiftData && shiftData.driverId === driverId) {
+        rides.push(rideData);
+      }
+    }
+
+    res.status(200).json(rides);
+  } catch (error) {
+    // Xử lý lỗi nếu có
+    console.error("Error fetching rides:", error);
+    res.status(500).send("Internal Server Error");
+  }
+};
 exports.createRide = async (req, res, next) => {
     try {
         const confirmData = req.body;

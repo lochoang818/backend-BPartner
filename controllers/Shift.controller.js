@@ -232,7 +232,7 @@ exports.createShiftByCalendar = async (req, res, next) => {
           if (dataObject.hasOwnProperty(dayOfWeek)) {
               const { start, end } = dataObject[dayOfWeek];
               const formattedDate = currentDate.format("D/M/YYYY"); // Sử dụng "D" và "M" để loại bỏ số 0 phía trước của ngày và tháng
-              if (start !== ""&&start!="0") {
+              if (start !== ""&&start!=="0") {
                   const schoolShift = {
                       available: true,
                       condition: condition,
@@ -246,7 +246,7 @@ exports.createShiftByCalendar = async (req, res, next) => {
                   shifts.push(schoolShift);
               }
 
-              if (end !== "" &&end!="0") {
+              if (end !== "" &&end!=="0") {
                   const homeShift = {
                       available: true,
                       auto: auto,
@@ -279,11 +279,15 @@ exports.createShiftByCalendar = async (req, res, next) => {
 
           const querySnapshot = await getDocs(q);
           if (!querySnapshot.empty) {
-              return res
-                  .status(400)
-                  .json({ message: "You cannot add the same shift" });
+              // return res
+              //     .status(400)
+              //     .json({ message: "You cannot add the same shift" });
+          }       
+          else{
+            await addDoc(ShiftCollection, shift);
+
           }
-          await addDoc(ShiftCollection, shift);
+
       }
 
       return res.status(201).json({ message: "Shifts added" });
