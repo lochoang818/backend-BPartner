@@ -35,16 +35,9 @@ const admin = require("firebase-admin");
 const moment = require("moment");
 const { json } = require("express");
 exports.getAllRidePassenger = async (req, res, next) => {
-  const { passengerId,rideId } = req.body;
-  const feedbackDocs = await getDocs(
-    query(FeedbackCollection, where("rideId", "==", rideId))
-  );
+  const { passengerId } = req.body;
+  
 
-  const feedbacks = [];
-  feedbackDocs.forEach((doc) => {
-    const data = doc.data();
-    feedbacks.push(data);
-  }); 
   try {
       const ridesQuerySnapshot = await getDocs(
           query(RideCollection, where("passengerId", "==", passengerId))
@@ -69,7 +62,6 @@ exports.getAllRidePassenger = async (req, res, next) => {
               rideData.passenger=passenger
               rideData.shift.driver =driver
               rideData.shift.driver.user=userDriver
-              rideData.feedback=feedbacks[0]
 
               rides.push(rideData);
           }
@@ -91,22 +83,12 @@ exports.getAllRidePassenger = async (req, res, next) => {
 
 
 exports.getAllRideDriver = async (req, res, next) => {
-  const { driverId,rideId } = req.body;
-  const feedbackDocs = await getDocs(
-    query(FeedbackCollection, where("rideId", "==", rideId))
-  );
+  const { driverId } = req.body;
 
-  const feedbacks = [];
-  feedbackDocs.forEach((doc) => {
-    const data = doc.data();
-    feedbacks.push(data);
-  }); 
+
    try {
       // Lấy tất cả các chuyến đi
-      const ridesQuerySnapshot = await getDocs(
-          query(RideCollection)
-      );
-
+ 
       const rides = [];
 
       // Lặp qua mỗi chuyến đi
@@ -126,7 +108,6 @@ exports.getAllRideDriver = async (req, res, next) => {
               rideData.passenger=passenger
               rideData.shift.driver =driver
               rideData.shift.driver.user=userDriver
-              rideData.feedback=feedbacks[0]
               rides.push(rideData);
           }
       }
