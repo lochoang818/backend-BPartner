@@ -36,6 +36,7 @@ exports.getNotificationsByReceiverId = async (receiverId) => {
     for (const d of querySnap.docs) {
         let notification = d.data();
         let ride = await getDoc(doc(RideCollection, notification.data.rideId));
+        console.log(ride.data());
         let shift = await getDoc(doc(ShiftCollection, ride.data().shiftId));
         notification.data.shift = shift.data();
         let driver = await getDoc(doc(DriverCollection, shift.data().driverId));
@@ -43,6 +44,8 @@ exports.getNotificationsByReceiverId = async (receiverId) => {
         let passenger = await getDoc(
             doc(UserCollection, ride.data().passengerId)
         );
+        console.log("sdfsdf")
+
         notification.data.driver = driver.data();
         notification.data.driver.id = driver.id;
         notification.data.ride = ride.data();
