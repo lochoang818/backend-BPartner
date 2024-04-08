@@ -59,6 +59,9 @@ exports.createRide = async (req, res, next) => {
         );
         const driverUser = await userService.handleGetUserById(driver.userId);
         if (driverUser.token !== null) {
+            await notificationService.sendNotification(rideTemp.passengerId, "request", {
+                rideId: rideId, status: "sending"
+            });
             const message = {
                 notification: {
                     title: "Đi học với mình nhé!",
@@ -118,6 +121,9 @@ exports.autoConfirm = async (req, res, next) => {
         );
         const driverUser = await userService.handleGetUserById(driver.userId);
         if (driverUser.token !== null) {
+            await notificationService.sendNotification(rideTemp.passengerId, "request", {
+                rideId: rideId, status: "accepting"
+            });
             const message = {
                 notification: {
                     title: `Hãy chuẩn bị đi học với nhau nào!`,
@@ -142,6 +148,7 @@ exports.autoConfirm = async (req, res, next) => {
 
                     // res.status(500).json({ error: "Error sending message:" + error });
                 });
+
         }
         await updateDoc(doc(ShiftCollection, confirmData.shiftId), {
             available: false,
@@ -216,10 +223,13 @@ exports.confirmRide = async (req, res, next) => {
         available: false,
     });
     if (passenger.token != null) {
+        await notificationService.sendNotification(rideTemp.passengerId, "request", {
+            rideId: rideId, status: "accepting"
+        });
         const message = {
             notification: {
-                title: `${driver.name} Đã xác nhận chuyến của bạn!`,
-                body: `${passenger.name} Hãy chuẩn bị sẵn sàng để cùng đi học nhé!`,
+                title: `${driver.name} đã xác nhận chuyến của bạn!`,
+                body: `${passenger.name} hãy chuẩn bị sẵn sàng để cùng đi học nhé!`,
             },
             data: {
                 click_action: "FLUTTER_NOTIFICATION_CLICK",
@@ -279,7 +289,7 @@ exports.startRide = async (req, res, next) => {
         });
     const ride = await rideService.updateStatus(rideId, "Start");
 
-    notificationService.sendNotification(passengerId, "starting", {
+    await notificationService.sendNotification(passengerId, "startingRide", {
         rideId: rideId,
     });
     // console.log(ride.shiftId)
@@ -468,7 +478,7 @@ exports.passengerCancelRide = async (req, res, next) => {
     const message = {
         notification: {
             title: `${rideId.name} đã hủy chuyến!`,
-            body: `Xin lỗi nhé, mong bạn thông `,
+            body: `Xin lỗi nhé, mong bạn thông cảm!`,
         },
         data: {
             click_action: "FLUTTER_NOTIFICATION_CLICK",
