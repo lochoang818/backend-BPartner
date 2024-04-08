@@ -14,6 +14,7 @@ const {
   ShiftCollection,
   DriverCollection,
   RideCollection,
+  UserCollection,
 } = require("../firestore/collection");
 const { get } = require("../utils/emailSender.util");
 const userService = require("../service/user.service");
@@ -31,7 +32,47 @@ const admin = require("firebase-admin");
 // });
 const moment = require("moment");
 const { json } = require("express");
+exports.getAllRidePassenger = async (req, res, next) => {
+    const {userId} = req.body
+    const ridesDoc = await getDocs(
+      query(RideCollection, where("passengerId", "==", userId))
+    );
+    const rides = [];
+    ridesDoc.forEach((doc) => {
+      const data = doc.data();
+      rides.push(data);
+    });
+}
+exports.getAllRideDriver = async (req, res, next) => {
+  const { driverId } = req.body;
 
+  try {
+    // Lấy tất cả các chuyến đi
+    const ridesQuerySnapshot = await firestore.collection('RideCollection').get();
+
+    const rides = [];
+
+    // Lặp qua mỗi chuyến đi
+    for (const rideDoc of ridesQuerySnapshot.docs) {
+      const rideData = rideDoc.data();
+      const shiftId = rideData.shiftId;
+
+      // Lấy thông tin của shift dựa trên shiftId
+      const shiftData = await handleGetShiftById(shiftId);
+      
+      // Nếu shift tồn tại và driverId trùng khớp, thêm chuyến đi vào mảng rides
+      if (shiftData && shiftData.driverId === driverId) {
+        rides.push(rideData);
+      }
+    }
+
+    res.status(200).json(rides);
+  } catch (error) {
+    // Xử lý lỗi nếu có
+    console.error("Error fetching rides:", error);
+    res.status(500).send("Internal Server Error");
+  }
+};
 exports.createRide = async (req, res, next) => {
   try {
     const confirmData = req.body;
@@ -320,8 +361,8 @@ exports.completedRide = async (req, res, next) => {
 
     const message = {
       notification: {
-        title: `${driverName} đang trên đường đến bạn!`,
-        body: `${passenger.name} Hãy chuẩn bị sẵn sàng để cùng đi học nhé!`,
+        title: `Chuyến đi đã hoàn thành`,
+        body: `${passenger.name} Hẹn gặp lại lần sau`,
       },
       data: {
         click_action: "FLUTTER_NOTIFICATION_CLICK",
@@ -343,6 +384,7 @@ exports.completedRide = async (req, res, next) => {
         // res.status(500).json({ error: "Error sending message:" + error });
       });
   }
+  await updateDoc(UserCollection, { completedRide: parseInt(driverUser.completedRide) + 1 });
   
   const ride = await rideService.updateStatus(rideId, "Completed");
   global.io.to(global.userConnections[passengerId]).emit("completedRide", rideId);
