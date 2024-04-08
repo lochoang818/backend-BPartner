@@ -85,10 +85,13 @@ exports.getAllRidePassenger = async (req, res, next) => {
 exports.getAllRideDriver = async (req, res, next) => {
   const { driverId } = req.body;
 
-
+  
    try {
       // Lấy tất cả các chuyến đi
- 
+      const ridesQuerySnapshot = await getDocs(
+          query(RideCollection)
+      );
+
       const rides = [];
 
       // Lặp qua mỗi chuyến đi
