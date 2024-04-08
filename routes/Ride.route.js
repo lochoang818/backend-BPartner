@@ -12,6 +12,6 @@ router.route("/autoConfirm").post(confirmedRide.autoConfirm);
 router.route("/check/:rideId").get(confirmedRide.checkStartingRide);
 router.route("/complete").post(confirmedRide.completedRide);
 router.route("/history/user").post(confirmedRide.getAllRidePassenger);
-router.route("/history/driver").post(confirmedRide.getAllRidePassenger);
+router.route("/history/driver").post(confirmedRide.getAllRideDriver);
 
 module.exports = router;

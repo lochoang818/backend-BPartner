@@ -42,9 +42,28 @@ exports.getAllRidePassenger = async (req, res, next) => {
 
       const rides = [];
 
-      ridesQuerySnapshot.forEach((rideDoc) => {
+      // Lặp qua từng chuyến đi
+      for (const rideDoc of ridesQuerySnapshot.docs) {
           const rideData = rideDoc.data();
-          rides.push(rideData);
+          const shiftId = rideData.shiftId;
+
+          // Lấy thông tin của shift dựa trên shiftId
+          const shiftData = await shiftService.handleGetShiftById(shiftId);
+          
+          // Nếu shift tồn tại, thêm thông tin về shift vào chuyến đi và đẩy vào mảng rides
+          if (shiftData &&(rideData.status === "Completed" || rideData.status === "Cancel")) {
+              rideData.shift = shiftData; // Thêm thông tin về shift vào chuyến đi
+              const driver = await driverService.handleGetDriverById(shiftData.driverId)
+              rideData.shift.driver =driver
+              rides.push(rideData);
+          }
+      }
+
+      // Sắp xếp mảng rides dựa trên ngày của shift từ gần nhất đến lâu nhất
+      rides.sort((a, b) => {
+          const dateA = moment(a.shift.date, "DD/MM/YYYY");
+          const dateB = moment(b.shift.date, "DD/MM/YYYY");
+          return dateB - dateA; // Sắp xếp theo thứ tự giảm dần (ngày gần nhất đến ngày lâu nhất)
       });
 
       res.status(200).json(rides);
@@ -54,37 +73,50 @@ exports.getAllRidePassenger = async (req, res, next) => {
   }
 };
 
+
 exports.getAllRideDriver = async (req, res, next) => {
   const { driverId } = req.body;
 
   try {
-    // Lấy tất cả các chuyến đi
-    const ridesQuerySnapshot = await getDocs(
-      query(RideCollectiond)
-  );
-    const rides = [];
+      // Lấy tất cả các chuyến đi
+      const ridesQuerySnapshot = await getDocs(
+          query(RideCollection)
+      );
 
-    // Lặp qua mỗi chuyến đi
-    for (const rideDoc of ridesQuerySnapshot.docs) {
-      const rideData = rideDoc.data();
-      const shiftId = rideData.shiftId;
+      const rides = [];
 
-      // Lấy thông tin của shift dựa trên shiftId
-      const shiftData = await handleGetShiftById(shiftId);
-      
-      // Nếu shift tồn tại và driverId trùng khớp, thêm chuyến đi vào mảng rides
-      if (shiftData && shiftData.driverId === driverId) {
-        rides.push(rideData);
+      // Lặp qua mỗi chuyến đi
+      for (const rideDoc of ridesQuerySnapshot.docs) {
+          const rideData = rideDoc.data();
+          const shiftId = rideData.shiftId;
+
+          // Lấy thông tin của shift dựa trên shiftId
+          const shiftData = await shiftService.handleGetShiftById(shiftId);
+
+          // Nếu shift tồn tại và driverId trùng khớp, thêm chuyến đi vào mảng rides
+          if (shiftData && shiftData.driverId === driverId && (rideData.status === "Completed" || rideData.status === "Cancel")) {
+            rideData.shift = shiftData; // Thêm thông tin về shift vào chuyến đi
+              const driver = await driverService.handleGetDriverById(shiftData.driverId)
+              rideData.shift.driver =driver
+              rides.push(rideData);
+          }
       }
-    }
 
-    res.status(200).json(rides);
+      // Sắp xếp mảng rides dựa trên ngày của shift từ gần nhất đến lâu nhất
+      rides.sort((a, b) => {
+          const dateA = moment(a.date, "DD/MM/YYYY");
+          const dateB = moment(b.date, "DD/MM/YYYY");
+          return dateB - dateA; // Sắp xếp theo thứ tự giảm dần (ngày gần nhất đến ngày lâu nhất)
+      });
+
+      res.status(200).json(rides);
   } catch (error) {
-    // Xử lý lỗi nếu có
-    console.error("Error fetching rides:", error);
-    res.status(500).send("Internal Server Error");
+      // Xử lý lỗi nếu có
+      console.error("Error fetching rides:", error);
+      res.status(500).send("Internal Server Error");
   }
 };
+
 exports.createRide = async (req, res, next) => {
     try {
         const confirmData = req.body;
@@ -568,3 +600,9 @@ exports.passengerCancelRide = async (req, res, next) => {
             // res.status(500).json({ error: "Error sending message:" + error });
         });
 };
+exports.DriverCancelRide = async (req, res, next) => {
+  const rideId = req.params.rideId;
+  const ride = await rideService.handleGetRideById(rideId);
+
+};
+
