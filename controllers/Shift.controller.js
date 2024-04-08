@@ -207,92 +207,92 @@ exports.detailShift = async (req, res, next) => {
     }
 };
 exports.createShiftByCalendar = async (req, res, next) => {
-    try {
-        moment.locale("en"); // Gán locale thành tiếng Anh cho so sánh
-        console.log("loc");
-        const requestData = req.body;
-        const { driverId, start, end, location, data, auto, condition } =
-            requestData;
+  try {
+      moment.locale("en"); // Gán locale thành tiếng Anh cho so sánh
+      console.log("loc");
+      const requestData = req.body;
+      const { driverId, start, end, location, data, auto, condition } =
+          requestData;
 
-        const startDate = moment(start, "DD/MM/YYYY");
-        const endDate = moment(end, "DD/MM/YYYY"); // Thêm 6 ngày cho đến thứ 7
+      const startDate = moment(start, "DD/MM/YYYY");
+      const endDate = moment(end, "DD/MM/YYYY"); // Thêm 6 ngày cho đến thứ 7
 
-        const shifts = [];
-        const dataObject = JSON.parse(data);
+      const shifts = [];
+      const dataObject = JSON.parse(data);
 
-        // Tạo các ca làm việc từ thứ 2 đến thứ 7
-        for (
-            let currentDate = startDate.clone();
-            currentDate.isSameOrBefore(endDate);
-            currentDate.add(1, "day")
-        ) {
-            const dayOfWeek = currentDate.format("dddd").toLowerCase(); // Lấy tên của ngày trong tuần
+      // Tạo các ca làm việc từ thứ 2 đến thứ 7
+      for (
+          let currentDate = startDate.clone();
+          currentDate.isSameOrBefore(endDate);
+          currentDate.add(1, "day")
+      ) {
+          const dayOfWeek = currentDate.format("dddd").toLowerCase(); // Lấy tên của ngày trong tuần
 
-            // Kiểm tra xem ngày hiện tại có trong dữ liệu gửi lên không
-            if (dataObject.hasOwnProperty(dayOfWeek)) {
-                // const prop =dayOfWeek
-                const { start, end } = dataObject[dayOfWeek];
-                const formattedDate = currentDate.format("DD/MM/YYYY");
-                if (start !== "") {
-                    const schoolShift = {
-                        available: true,
-                        condition: condition,
-                        auto: auto,
-                        driverId,
-                        shiftNumber: start,
-                        date: currentDate.format("DD/MM/YYYY"),
-                        location,
-                        type: "school",
-                        date: formattedDate,
-                    };
-                    shifts.push(schoolShift);
-                }
+          // Kiểm tra xem ngày hiện tại có trong dữ liệu gửi lên không
+          if (dataObject.hasOwnProperty(dayOfWeek)) {
+              const { start, end } = dataObject[dayOfWeek];
+              const formattedDate = currentDate.format("D/M/YYYY"); // Sử dụng "D" và "M" để loại bỏ số 0 phía trước của ngày và tháng
+              if (start !== ""&&start!=="0") {
+                  const schoolShift = {
+                      available: true,
+                      condition: condition,
+                      auto: auto,
+                      driverId,
+                      shiftNumber: start,
+                      location,
+                      type: "school",
+                      date: formattedDate,
+                  };
+                  shifts.push(schoolShift);
+              }
 
-                if (end !== "") {
-                    const homeShift = {
-                        available: true,
-                        auto: auto,
-                        condition: condition,
+              if (end !== "" &&end!=="0") {
+                  const homeShift = {
+                      available: true,
+                      auto: auto,
+                      condition: condition,
+                      driverId,
+                      shiftNumber: end,
+                      location,
+                      type: "home",
+                      date: formattedDate,
+                  };
+                  shifts.push(homeShift);
+              }
+          }
+      }
+      moment.locale("vi");
 
-                        driverId,
-                        shiftNumber: end,
-                        date: currentDate.format("DD/MM/YYYY"),
-                        location,
-                        type: "home",
-                        date: formattedDate,
-                    };
-                    shifts.push(homeShift);
-                }
-            }
-        }
-        moment.locale("vi");
+      // Thêm các ca làm việc vào cơ sở dữ liệu
+      for (const shift of shifts) {
+          // Thêm shift vào cơ sở dữ liệu ở đây
+          const formattedDate = moment(shift.date.toString(), "D/M/YYYY"); // Sử dụng "D" và "M" để loại bỏ số 0 phía trước của ngày và tháng
+          const dayOfWeek = formattedDate.format("dddd"); // Lấy thứ
+          shift.weekDay = dayOfWeek;
+          const q = query(
+              ShiftCollection,
+              where("type", "==", shift.type.toString()),
+              where("driverId", "==", shift.driverId.toString()),
+              where("shiftNumber", "==", shift.shiftNumber.toString()),
+              where("date", "==", shift.date.toString())
+          );
 
-        // Thêm các ca làm việc vào cơ sở dữ liệu
-        for (const shift of shifts) {
-            // Thêm shift vào cơ sở dữ liệu ở đây
-            const formattedDate = moment(shift.date.toString(), "DD/MM/YYYY");
-            const dayOfWeek = formattedDate.format("dddd"); // Lấy thứ
-            shift.weekDay = dayOfWeek;
-            const q = query(
-                ShiftCollection,
-                where("type", "==", shift.type.toString()),
-                where("driverId", "==", shift.driverId.toString()),
-                where("shiftNumber", "==", shift.shiftNumber.toString()),
-                where("date", "==", shift.date.toString())
-            );
-
-            const querySnapshot = await getDocs(q);
-            if (!querySnapshot.empty) {
-                return res
-                    .status(400)
-                    .json({ message: "You cannot add the same shift" });
-            }
+          const querySnapshot = await getDocs(q);
+          if (!querySnapshot.empty) {
+              // return res
+              //     .status(400)
+              //     .json({ message: "You cannot add the same shift" });
+          }       
+          else{
             await addDoc(ShiftCollection, shift);
-        }
 
-        return res.status(201).json({ message: "Shifts added" });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Internal server error" });
-    }
+          }
+
+      }
+
+      return res.status(201).json({ message: "Shifts added" });
+  } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Internal server error" });
+  }
 };

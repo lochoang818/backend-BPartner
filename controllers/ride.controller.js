@@ -15,6 +15,8 @@ const {
     ShiftCollection,
     DriverCollection,
     RideCollection,
+    UserCollection,
+    FeedbackCollection,
 } = require("../firestore/collection");
 const { get } = require("../utils/emailSender.util");
 const userService = require("../service/user.service");
@@ -30,8 +32,104 @@ const admin = require("firebase-admin");
 // admin.initializeApp({
 //     credential: admin.credential.cert(serviceAccount)
 // });
+
 const moment = require("moment");
 const { json } = require("express");
+exports.getAllRidePassenger = async (req, res, next) => {
+  const { passengerId } = req.body;
+  
+
+  try {
+      const ridesQuerySnapshot = await getDocs(
+          query(RideCollection, where("passengerId", "==", passengerId))
+      );
+
+      const rides = [];
+
+      // Lặp qua từng chuyến đi
+      for (const rideDoc of ridesQuerySnapshot.docs) {
+          const rideData = rideDoc.data();
+          const shiftId = rideData.shiftId;
+
+          // Lấy thông tin của shift dựa trên shiftId
+          const shiftData = await shiftService.handleGetShiftById(shiftId);
+          
+          // Nếu shift tồn tại, thêm thông tin về shift vào chuyến đi và đẩy vào mảng rides
+          if (shiftData &&(rideData.status === "Completed" || rideData.status === "Cancel")) {
+              rideData.shift = shiftData; // Thêm thông tin về shift vào chuyến đi
+              const driver = await driverService.handleGetDriverById(shiftData.driverId)
+              const userDriver = await userService.handleGetUserById(driver.userId)
+              const passenger = await userService.handleGetUserById(rideData.passengerId)
+              rideData.passenger=passenger
+              rideData.shift.driver =driver
+              rideData.shift.driver.user=userDriver
+
+              rides.push(rideData);
+          }
+      }
+
+      // Sắp xếp mảng rides dựa trên ngày của shift từ gần nhất đến lâu nhất
+      rides.sort((a, b) => {
+          const dateA = moment(a.shift.date, "DD/MM/YYYY");
+          const dateB = moment(b.shift.date, "DD/MM/YYYY");
+          return dateB - dateA; // Sắp xếp theo thứ tự giảm dần (ngày gần nhất đến ngày lâu nhất)
+      });
+
+      res.status(200).json(rides);
+  } catch (error) {
+      console.error("Error fetching rides:", error);
+      res.status(500).send("Internal Server Error");
+  }
+};
+
+
+exports.getAllRideDriver = async (req, res, next) => {
+  const { driverId } = req.body;
+
+  
+   try {
+      // Lấy tất cả các chuyến đi
+      const ridesQuerySnapshot = await getDocs(
+          query(RideCollection)
+      );
+
+      const rides = [];
+
+      // Lặp qua mỗi chuyến đi
+      for (const rideDoc of ridesQuerySnapshot.docs) {
+          const rideData = rideDoc.data();
+          const shiftId = rideData.shiftId;
+
+          // Lấy thông tin của shift dựa trên shiftId
+          const shiftData = await shiftService.handleGetShiftById(shiftId);
+
+          // Nếu shift tồn tại và driverId trùng khớp, thêm chuyến đi vào mảng rides
+          if (shiftData && shiftData.driverId === driverId && (rideData.status === "Completed" || rideData.status === "Cancel")) {
+            rideData.shift = shiftData; // Thêm thông tin về shift vào chuyến đi
+              const driver = await driverService.handleGetDriverById(shiftData.driverId)
+              const userDriver = await userService.handleGetUserById(driver.userId)
+              const passenger = await userService.handleGetUserById(rideData.passengerId)
+              rideData.passenger=passenger
+              rideData.shift.driver =driver
+              rideData.shift.driver.user=userDriver
+              rides.push(rideData);
+          }
+      }
+
+      // Sắp xếp mảng rides dựa trên ngày của shift từ gần nhất đến lâu nhất
+      rides.sort((a, b) => {
+          const dateA = moment(a.date, "DD/MM/YYYY");
+          const dateB = moment(b.date, "DD/MM/YYYY");
+          return dateB - dateA; // Sắp xếp theo thứ tự giảm dần (ngày gần nhất đến ngày lâu nhất)
+      });
+
+      res.status(200).json(rides);
+  } catch (error) {
+      // Xử lý lỗi nếu có
+      console.error("Error fetching rides:", error);
+      res.status(500).send("Internal Server Error");
+  }
+};
 
 exports.createRide = async (req, res, next) => {
     try {
@@ -98,6 +196,22 @@ exports.createRide = async (req, res, next) => {
         throw new Error("Bad request");
     }
 };
+exports.getFeedbackbyRideId = async (req, res, next) => {
+  const rideId = req.params.rideId;
+
+  const feedbackDocs = await getDocs(
+    query(FeedbackCollection, where("rideId", "==", rideId))
+  );
+
+  const feedbacks = [];
+  feedbackDocs.forEach((doc) => {
+    const data = doc.data();
+    feedbacks.push(data);
+  });
+  res
+      .status(200)
+      .json({ message: "Get Feedback successfully", feedbacks: feedbacks[0] });
+}
 exports.autoConfirm = async (req, res, next) => {
     try {
         const confirmData = req.body;
@@ -484,9 +598,13 @@ exports.checkStartingRide = async (req, res, next) => {
     }
 };
 exports.passengerCancelRide = async (req, res, next) => {
-    const rideId = req.params.rideId;
-    await rideService.updateStatus(rideId, "Cancel");
+    const {rideId,userId } = req.body;
     const ride = await rideService.handleGetRideById(rideId);
+    if (ride.isStart == false) {
+      await Zerofeedback(ride.userId)
+
+    }
+    await rideService.updateStatus(rideId, "Cancel");
     await updateDoc(doc(ShiftCollection, ride.shiftId), {
         available: true,
     });
@@ -515,4 +633,97 @@ exports.passengerCancelRide = async (req, res, next) => {
 
             // res.status(500).json({ error: "Error sending message:" + error });
         });
+        return res.status(200).json({ message: "Hủy chuyến thành công" });
+
 };
+
+exports.DriverCancelRide = async (req, res, next) => {
+  const {rideId, isNear,userId,dateTime  } = req.body;
+  const ride = await rideService.handleGetRideById(rideId)
+  const currentTime = moment();
+
+  // Chuyển đổi thời gian dateTime từ định dạng của req.body (vd: '2024-04-08T12:00:00') sang đối tượng Moment
+  const rideDateTime = moment(dateTime);
+  const waitingTime = currentTime.diff(rideDateTime, 'minutes');
+
+  if(isNear==true && waitingTime>15){
+    await Zerofeedback(ride.passengerId,rideId)
+  }
+  else{
+    await Zerofeedback(userId,rideId)
+
+  }
+    await rideService.updateStatus(rideId, "Cancel");
+    await updateDoc(doc(ShiftCollection, ride.shiftId), {
+        available: true,
+    });
+    const passenger = await userService.handleGetUserById(ride.passengerId);
+    if(passenger.token!=null){
+      const message = {
+        notification: {
+            title: `${rideId.name} đã hủy chuyến!`,
+            body: `Xin lỗi nhé, mong bạn thông cảm!`,
+        },
+        data: {
+            click_action: "FLUTTER_NOTIFICATION_CLICK",
+            screen: "feedbackPassenger",
+            messageId: "123456",
+        },
+        token: passenger.token,
+    };
+    admin
+        .messaging()
+        .send(message)
+        .then((response) => {
+            console.log("Successfully sent message");
+            // res.status(200).json({ message: "Successfully sent message" });
+        })
+        .catch((error) => {
+            console.log("Error sending message:");
+
+            // res.status(500).json({ error: "Error sending message:" + error });
+        });
+    }
+    return res.status(200).json({ message: "Hủy chuyến thành công" });
+
+
+};
+
+const Zerofeedback = async(recipientId,rideId)=>{
+
+  // Lấy tất cả các phản hồi của hành khách từ collectionFeedback
+  const feedbackDocs = await getDocs(
+    query(FeedbackCollection, where("userId", "==", recipientId))
+  );
+
+  let totalPoints = 0;
+  let numberOfFeedbacks = 0;
+
+  feedbackDocs.forEach((doc) => {
+    const data = doc.data();
+    totalPoints += parseFloat(data.rate);
+    numberOfFeedbacks++;
+  });
+
+  // Thêm phản hồi mới vào mảng feedbacks
+
+  // Tính điểm trung bình
+  const averageRating = (
+    (totalPoints + parseFloat(0)) /
+    (numberOfFeedbacks + 1)
+  ).toFixed(1);
+  await addDoc(FeedbackCollection, {
+    content:"",
+    rate:0,
+    name: "",
+    avatar: "",
+    userId: recipientId,
+    rideId: rideId,
+  });
+
+  // Cập nhật điểm trung bình của hành khách trong cơ sở dữ liệu
+  await updateDoc(doc(UserCollection, recipientId), {
+    credit: averageRating ?? 0,
+  });
+
+}
