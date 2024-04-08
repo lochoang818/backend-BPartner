@@ -59,9 +59,6 @@ exports.createRide = async (req, res, next) => {
         );
         const driverUser = await userService.handleGetUserById(driver.userId);
         if (driverUser.token !== null) {
-            await notificationService.sendNotification(rideTemp.passengerId, "request", {
-                rideId: rideId, status: "sending"
-            });
             const message = {
                 notification: {
                     title: "Đi học với mình nhé!",
@@ -88,9 +85,15 @@ exports.createRide = async (req, res, next) => {
                 });
         }
         confirmData.status = "Pending";
-        await addDoc(RideCollection, confirmData);
+        let ref = await addDoc(RideCollection, confirmData);
+        let rideDoc = await getDoc(ref);
+        await notificationService.sendNotification(driver.userId, "request", {
+            rideId: rideDoc.id,
+            status: "sending",
+        });
         res.status(201).json({ message: "Ride added" });
     } catch (error) {
+        console.log(error);
         throw new Error("Bad request");
     }
 };
@@ -121,9 +124,14 @@ exports.autoConfirm = async (req, res, next) => {
         );
         const driverUser = await userService.handleGetUserById(driver.userId);
         if (driverUser.token !== null) {
-            await notificationService.sendNotification(rideTemp.passengerId, "request", {
-                rideId: rideId, status: "accepting"
-            });
+            await notificationService.sendNotification(
+                rideTemp.passengerId,
+                "request",
+                {
+                    rideId: rideId,
+                    status: "accepting",
+                }
+            );
             const message = {
                 notification: {
                     title: `Hãy chuẩn bị đi học với nhau nào!`,
@@ -148,7 +156,6 @@ exports.autoConfirm = async (req, res, next) => {
 
                     // res.status(500).json({ error: "Error sending message:" + error });
                 });
-
         }
         await updateDoc(doc(ShiftCollection, confirmData.shiftId), {
             available: false,
@@ -223,9 +230,14 @@ exports.confirmRide = async (req, res, next) => {
         available: false,
     });
     if (passenger.token != null) {
-        await notificationService.sendNotification(rideTemp.passengerId, "request", {
-            rideId: rideId, status: "accepting"
-        });
+        await notificationService.sendNotification(
+            rideTemp.passengerId,
+            "request",
+            {
+                rideId: rideId,
+                status: "accepting",
+            }
+        );
         const message = {
             notification: {
                 title: `${driver.name} đã xác nhận chuyến của bạn!`,
@@ -280,14 +292,14 @@ exports.startRide = async (req, res, next) => {
         .send(message)
         .then((response) => {
             console.log("Successfully sent message");
-            // res.status(200).json({ message: "Successfully sent message" });
+            // res.status(200).json({ message: "Successfuzlly sent message" });
         })
         .catch((error) => {
             console.log("Error sending message:");
 
             // res.status(500).json({ error: "Error sending message:" + error });
         });
-    const ride = await rideService.updateStatus(rideId, "Start");
+    const ride = await rideService.startRide(rideId);
 
     await notificationService.sendNotification(passengerId, "startingRide", {
         rideId: rideId,
@@ -300,6 +312,9 @@ exports.completedRide = async (req, res, next) => {
     const passenger = await userService.handleGetUserById(passengerId);
     const driverUser = await userService.handleGetUserById(driverId);
     if (passenger.token != null) {
+        await notificationService.sendNotification(passengerId, "completedRide", {
+            rideId: rideId, 
+        });
         const message = {
             notification: {
                 title: `${driverName} đang trên đường đến bạn!`,
