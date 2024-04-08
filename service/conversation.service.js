@@ -46,10 +46,11 @@ exports.getConversationsByUserId = async (id) => {
             data.avatar = user.data().avatar;
             data.name = user.data().name;
             data.receiverId = other;
-            // convert to display string
-            data.lastUpdatedString = getLastUpdatedDisplayString(
-                data.lastUpdated.toDate()
-            );
+            if (!data.lastUpdated) {
+                data.lastUpdatedString = getLastUpdatedDisplayString(
+                    data.lastUpdated.toDate()
+                );
+            }
             data.id = d.id;
             data.seen = data.seenBy.includes(id);
             result.push(data);
@@ -86,10 +87,13 @@ exports.getConversationByUserIdAndConversationId = async (
         data.avatar = user.data().avatar;
         data.name = user.data().name;
         data.receiverId = other;
-        // convert to display string
-        data.lastUpdatedString = getLastUpdatedDisplayString(
-            data.lastUpdated.toDate()
-        );
+        console.log(data.lastUpdated);
+        if (data.lastUpdated !== undefined) {
+            data.lastUpdatedString = getLastUpdatedDisplayString(
+                data.lastUpdated.toDate()
+            );
+        }
+
         data.phone = user.data().phone;
 
         data.id = conversationDoc.id;
@@ -104,6 +108,7 @@ exports.getConversationByUserIdAndConversationId = async (
 exports.createConversationByUserIds = async (id1, id2) => {
     try {
         let conversation = await this.getConversationByParticipants(id1, id2);
+        console.log(conversation);
         if (conversation == null) {
             let doc = await addDoc(ConversationCollection, {
                 createdAt: serverTimestamp(),
@@ -182,13 +187,34 @@ function timeInHHMM(date) {
 }
 
 exports.getConversationByParticipants = async (id1, id2) => {
-    let querySnap = await getDocs(
+    let querySnap1 = await getDocs(
         query(
             ConversationCollection,
-            where("participants", "array-contains-any", [id1, id2])
+            where("participants", "array-contains", id1)
         )
     );
-    if (querySnap.empty) return null;
+    if (querySnap1.empty) return null;
+    let querySnap2 = await getDocs(
+        query(
+            ConversationCollection,
+            where("participants", "array-contains", id2)
+        )
+    );
+    if (querySnap2.empty) return null;
 
-    return querySnap.docs[0];
+    let list1 = querySnap1.docs.map((e) => e.id);
+    let list2 = querySnap2.docs.map((e) => e.id);
+    let id = "";
+    for (const i of list1) {
+        if (list2.includes(i)) id = i;
+    }
+
+    if ((id = "")) return null;
+    for (const d of querySnap1.docs) {
+        if (d.id == id) {
+            return d;
+        }
+    }
+
+    return querySnap1.docs[0];
 };

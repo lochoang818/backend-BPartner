@@ -34,11 +34,14 @@ exports.getConversationByUserIdAndConversationId = async (req, res) => {
 exports.createConversationsByUserIds = async (req, res) => {
     let id1 = req.body.id1;
     let id2 = req.body.id2;
-    let conversation = await conversationService.createConversationByUserIds(
+    let conversationRef = await conversationService.createConversationByUserIds(
         id1,
         id2
     );
-    return res.status(200).json({ success: true });
+    let conversationDoc = await getDoc(conversationRef);
+    let result = conversationDoc.data();
+    result.id = conversationDoc.id;
+    return res.status(200).json(result);
 };
 
 exports.markConversationAsSeen = async (req, res) => {

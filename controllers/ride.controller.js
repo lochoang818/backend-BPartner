@@ -9,6 +9,7 @@ const {
     documentId,
     doc,
     updateDoc,
+    orderBy,
 } = require("firebase/firestore");
 const {
     ShiftCollection,
@@ -372,7 +373,7 @@ exports.completedRide = async (req, res, next) => {
 };
 exports.findPendingRide = async (req, res, next) => {
     try {
-        const querySnapshot = await getDocs(RideCollection);
+        const querySnapshot = await getDocs(RideCollection, orderBy('difference', 'asc'));
         const driverId = req.params.driverId;
 
         // Tạo một Map để lưu trữ các chuyến đi theo shiftId
